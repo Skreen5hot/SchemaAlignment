@@ -1,7 +1,7 @@
 /**
  * Snapshot Test
  *
- * Verifies that transform(examples/input.jsonld) produces output
+ * Verifies that align(examples/input.jsonld) produces output
  * that matches examples/expected-output.jsonld when compared using
  * canonicalized serialization.
  *
@@ -12,7 +12,7 @@ import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { strictEqual } from "node:assert";
-import { transform } from "../src/kernel/transform.js";
+import { align } from "../src/kernel/transform.js";
 import { stableStringify } from "../src/kernel/canonicalize.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,9 +30,9 @@ async function main(): Promise<void> {
   const inputRaw = await readFile(inputPath, "utf-8");
   const expectedRaw = await readFile(expectedPath, "utf-8");
 
-  const input = JSON.parse(inputRaw);
+  const cism = JSON.parse(inputRaw);
   const expected = JSON.parse(expectedRaw);
-  const actual = transform(input);
+  const actual = align(cism, "sha256:fixture");
 
   // Compare using canonicalized serialization
   const actualStr = stableStringify(actual, true);
@@ -40,10 +40,10 @@ async function main(): Promise<void> {
 
   try {
     strictEqual(actualStr, expectedStr);
-    console.log("  \u2713 PASS: transform output matches expected-output.jsonld (canonicalized comparison)");
+    console.log("  \u2713 PASS: align output matches expected-output.jsonld (canonicalized comparison)");
     passed++;
   } catch (error) {
-    console.error("  \u2717 FAIL: transform output does not match expected-output.jsonld");
+    console.error("  \u2717 FAIL: align output does not match expected-output.jsonld");
     console.error("\n  Expected:\n" + expectedStr);
     console.error("\n  Actual:\n" + actualStr);
     failed++;

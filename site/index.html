@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schema Alignment Service — Interactive Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f6f8;
+      color: #1a1a2e;
+      line-height: 1.5;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #e8e8f0;
+      padding: 1.25rem 2rem;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 600; }
+    header p { font-size: 0.85rem; color: #9e9eb8; margin-top: 0.25rem; }
+
+    main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
+
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 768px) {
+      .panels { grid-template-columns: 1fr; }
+    }
+
+    .panel-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b6b80;
+      margin-bottom: 0.5rem;
+    }
+
+    textarea {
+      width: 100%;
+      height: 420px;
+      font-family: "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      padding: 1rem;
+      border: 1px solid #d0d0dc;
+      border-radius: 6px;
+      background: #fff;
+      color: #1a1a2e;
+      resize: vertical;
+      tab-size: 2;
+    }
+    textarea:focus { outline: 2px solid #4a6cf7; border-color: transparent; }
+
+    .output-box {
+      width: 100%;
+      height: 420px;
+      font-family: "SF Mono", "Cascadia Code", "Fira Code", Consolas, monospace;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      padding: 1rem;
+      border: 1px solid #d0d0dc;
+      border-radius: 6px;
+      background: #fff;
+      color: #1a1a2e;
+      overflow: auto;
+      white-space: pre;
+    }
+    .output-placeholder { color: #9e9eb8; font-style: italic; }
+
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 1rem;
+    }
+
+    .btn-align {
+      background: #4a6cf7;
+      color: #fff;
+      border: none;
+      padding: 0.6rem 1.5rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-align:hover { background: #3a5ce5; }
+    .btn-align:active { background: #2d4ed0; }
+
+    .btn-reset {
+      background: none;
+      border: 1px solid #d0d0dc;
+      padding: 0.6rem 1.25rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #6b6b80;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-reset:hover { border-color: #9e9eb8; color: #1a1a2e; }
+
+    .diagnostics {
+      margin-top: 1.5rem;
+      border-top: 1px solid #e0e0ea;
+      padding-top: 1rem;
+    }
+    .diagnostics .panel-label { margin-bottom: 0.5rem; }
+
+    .diag-empty { color: #9e9eb8; font-size: 0.85rem; font-style: italic; }
+
+    .diag {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    .diag-info { background: #eef2ff; color: #3b5998; }
+    .diag-warning { background: #fff8e1; color: #8a6d00; }
+    .diag-fatal { background: #ffeef0; color: #c0392b; }
+
+    .diag-code {
+      font-family: "SF Mono", Consolas, monospace;
+      font-weight: 700;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+    .diag-level {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    footer {
+      margin-top: 2rem;
+      padding: 1rem 2rem;
+      border-top: 1px solid #e0e0ea;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #9e9eb8;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Schema Alignment Service</h1>
+    <p>Paste a CISM JSON input and see the deterministic viz:DatasetSchema output.</p>
+  </header>
+
+  <main>
+    <div class="panels">
+      <div>
+        <div class="panel-label">CISM Input</div>
+        <textarea id="cism-input" spellcheck="false"></textarea>
+      </div>
+      <div>
+        <div class="panel-label">SASResult Output</div>
+        <div class="output-box" id="sas-output">
+          <span class="output-placeholder">Click Align to see the result.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-align" id="align-btn">Align</button>
+      <button class="btn-reset" id="reset-btn">Reset Example</button>
+    </div>
+
+    <div class="diagnostics">
+      <div class="panel-label">Diagnostics</div>
+      <div id="diagnostics">
+        <div class="diag-empty">No diagnostics yet.</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Kernel v0.1.0 &mdash; Pure deterministic transformation. No data leaves your browser.
+  </footer>
+
+  <script type="module" src="./dist/demo.js"></script>
+</body>
+</html>

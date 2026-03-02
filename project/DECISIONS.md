@@ -143,3 +143,18 @@
 - Phase 1 task 1.14 can proceed without conflicting with CLAUDE.md §4
 - CLAUDE.md §4 amended with a reference to this ADR
 - After task 1.14, the spec test prohibition is fully reinstated
+
+---
+
+## ADR-009: Array Root totalRows Uses itemType.occurrences
+
+**Date:** 2026-03-02
+
+**Decision:** For CISM roots with `kind: "array"`, `viz:totalRows` is derived from `root.itemType.occurrences` (the row count), not `root.occurrences` (which is 1 — the array node itself occurs once).
+
+**Context:** Discovered during task 1.14 when the CLI produced `"viz:totalRows": 1` for an 8-row employees dataset. BIBSS v1.3 models an array-of-objects as a root node with `kind: "array"` and `occurrences: 1` (one array). The actual row count is in `root.itemType.occurrences`. The spec (§5.2) says `viz:totalRows` represents the dataset row count, which requires reading the correct node.
+
+**Consequences:**
+- Implementation introduces `rowNode`: for `kind: "object"` roots, use root directly; for `kind: "array"` roots, use `root.itemType`
+- `viz:totalRows = sampling?.applied ? sampling.inputSize : rowNode.occurrences`
+- Snapshot test fixture (`examples/expected-output.jsonld`) reflects the correct value (500, not 1)

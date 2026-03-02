@@ -1,0 +1,126 @@
+{
+  "version": "1.3",
+  "generatedAt": "2026-03-02T10:22:12.659Z",
+  "config": {
+    "requiredThreshold": 1,
+    "emptyStringAsNull": true,
+    "sampleSize": 2000,
+    "maxSizeWarning": 10485760
+  },
+  "root": {
+    "id": "#",
+    "kind": "array",
+    "occurrences": 1,
+    "itemType": {
+      "id": "#/[]",
+      "kind": "object",
+      "occurrences": 4,
+      "properties": [
+        {
+          "name": "_row_id",
+          "target": {
+            "id": "#/[]/_row_id",
+            "kind": "primitive",
+            "name": "_row_id",
+            "occurrences": 4,
+            "primitiveType": "string",
+            "nullable": false,
+            "typeDistribution": {
+              "string": 4
+            }
+          },
+          "required": true,
+          "occurrences": 4,
+          "totalPopulation": 4
+        },
+        {
+          "name": "status_flag",
+          "target": {
+            "id": "#/[]/status_flag",
+            "kind": "primitive",
+            "name": "status_flag",
+            "occurrences": 4,
+            "primitiveType": "string",
+            "nullable": false,
+            "typeDistribution": {
+              "string": 4
+            }
+          },
+          "required": true,
+          "occurrences": 4,
+          "totalPopulation": 4
+        },
+        {
+          "name": "financial_value",
+          "target": {
+            "id": "#/[]/financial_value",
+            "kind": "primitive",
+            "name": "financial_value",
+            "occurrences": 4,
+            "primitiveType": "string",
+            "nullable": false,
+            "typeDistribution": {
+              "string": 4
+            }
+          },
+          "required": true,
+          "occurrences": 4,
+          "totalPopulation": 4
+        },
+        {
+          "name": "medical_code",
+          "target": {
+            "id": "#/[]/medical_code",
+            "kind": "primitive",
+            "name": "medical_code",
+            "occurrences": 4,
+            "primitiveType": "string",
+            "nullable": true,
+            "typeDistribution": {
+              "null": 1,
+              "string": 3
+            }
+          },
+          "required": true,
+          "occurrences": 4,
+          "totalPopulation": 4
+        },
+        {
+          "name": "event_date",
+          "target": {
+            "id": "#/[]/event_date",
+            "kind": "primitive",
+            "name": "event_date",
+            "occurrences": 4,
+            "primitiveType": "string",
+            "nullable": true,
+            "typeDistribution": {
+              "null": 1,
+              "string": 3
+            }
+          },
+          "required": true,
+          "occurrences": 4,
+          "totalPopulation": 4
+        },
+        {
+          "name": "notes",
+          "target": {
+            "id": "#/[]/notes",
+            "kind": "primitive",
+            "name": "notes",
+            "occurrences": 4,
+            "primitiveType": "string",
+            "nullable": false,
+            "typeDistribution": {
+              "string": 4
+            }
+          },
+          "required": true,
+          "occurrences": 4,
+          "totalPopulation": 4
+        }
+      ]
+    }
+  }
+}

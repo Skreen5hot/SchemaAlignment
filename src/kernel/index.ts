@@ -1,18 +1,19 @@
 /**
  * CLI Entry Point
  *
- * Reads a JSON-LD file from the command line, invokes the kernel transform,
+ * Reads a CISM JSON file from the command line, invokes the kernel align(),
  * and writes the canonicalized result to stdout.
  *
- * Usage: node dist/kernel/index.js <input-file.jsonld>
+ * Usage: node dist/kernel/index.js <cism-file.json>
  *
- * This file is the ONLY place where I/O occurs. The transform function
+ * This file is the ONLY place where I/O occurs. The align function
  * itself is pure and deterministic.
  */
 
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { resolve } from "node:path";
-import { transform } from "./transform.js";
+import { align } from "./transform.js";
 import { stableStringify } from "./canonicalize.js";
 
 async function main(): Promise<void> {
@@ -20,7 +21,7 @@ async function main(): Promise<void> {
 
   if (args.length === 0) {
     process.stderr.write(
-      "Usage: node dist/kernel/index.js <input-file.jsonld>\n"
+      "Usage: node dist/kernel/index.js <cism-file.json>\n"
     );
     process.exit(1);
   }
@@ -29,9 +30,10 @@ async function main(): Promise<void> {
 
   try {
     const raw = await readFile(inputPath, "utf-8");
-    const input: unknown = JSON.parse(raw);
-    const output = transform(input);
-    process.stdout.write(stableStringify(output, true) + "\n");
+    const cism = JSON.parse(raw);
+    const rawHash = "sha256:" + createHash("sha256").update(raw).digest("hex");
+    const result = align(cism, rawHash);
+    process.stdout.write(stableStringify(result, true) + "\n");
   } catch (error) {
     if (error instanceof SyntaxError) {
       process.stderr.write(`Invalid JSON in input file: ${error.message}\n`);

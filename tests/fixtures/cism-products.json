@@ -1,0 +1,315 @@
+{
+  "version": "1.3",
+  "generatedAt": "2026-03-02T10:20:06.000Z",
+  "config": {
+    "requiredThreshold": 1,
+    "emptyStringAsNull": true,
+    "sampleSize": 2000,
+    "maxSizeWarning": 10485760
+  },
+  "root": {
+    "id": "#",
+    "kind": "array",
+    "occurrences": 1,
+    "itemType": {
+      "id": "#/[]",
+      "kind": "object",
+      "occurrences": 5,
+      "properties": [
+        {
+          "name": "id",
+          "target": {
+            "id": "#/[]/id",
+            "kind": "primitive",
+            "name": "id",
+            "occurrences": 5,
+            "primitiveType": "integer",
+            "nullable": false,
+            "typeDistribution": {
+              "integer": 5
+            }
+          },
+          "required": true,
+          "occurrences": 5,
+          "totalPopulation": 5
+        },
+        {
+          "name": "name",
+          "target": {
+            "id": "#/[]/name",
+            "kind": "primitive",
+            "name": "name",
+            "occurrences": 5,
+            "primitiveType": "string",
+            "nullable": false,
+            "typeDistribution": {
+              "string": 5
+            }
+          },
+          "required": true,
+          "occurrences": 5,
+          "totalPopulation": 5
+        },
+        {
+          "name": "price",
+          "target": {
+            "id": "#/[]/price",
+            "kind": "primitive",
+            "name": "price",
+            "occurrences": 5,
+            "primitiveType": "number",
+            "nullable": false,
+            "typeDistribution": {
+              "integer": 1,
+              "number": 4
+            }
+          },
+          "required": true,
+          "occurrences": 5,
+          "totalPopulation": 5
+        },
+        {
+          "name": "inStock",
+          "target": {
+            "id": "#/[]/inStock",
+            "kind": "primitive",
+            "name": "inStock",
+            "occurrences": 5,
+            "primitiveType": "boolean",
+            "nullable": false,
+            "typeDistribution": {
+              "boolean": 5
+            }
+          },
+          "required": true,
+          "occurrences": 5,
+          "totalPopulation": 5
+        },
+        {
+          "name": "tags",
+          "target": {
+            "id": "#/[]/tags",
+            "kind": "array",
+            "name": "tags",
+            "occurrences": 5,
+            "itemType": {
+              "id": "#/[]/tags/[]",
+              "kind": "primitive",
+              "occurrences": 10,
+              "primitiveType": "string",
+              "nullable": false,
+              "typeDistribution": {
+                "string": 10
+              }
+            },
+            "nullable": false
+          },
+          "required": true,
+          "occurrences": 5,
+          "totalPopulation": 5
+        },
+        {
+          "name": "specs",
+          "target": {
+            "id": "#/[]/specs",
+            "kind": "object",
+            "name": "specs",
+            "occurrences": 5,
+            "properties": [
+              {
+                "name": "cpu",
+                "target": {
+                  "id": "#/[]/specs/cpu",
+                  "kind": "primitive",
+                  "name": "cpu",
+                  "occurrences": 1,
+                  "primitiveType": "string",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "string": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              },
+              {
+                "name": "ram",
+                "target": {
+                  "id": "#/[]/specs/ram",
+                  "kind": "primitive",
+                  "name": "ram",
+                  "occurrences": 1,
+                  "primitiveType": "integer",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "integer": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              },
+              {
+                "name": "storage",
+                "target": {
+                  "id": "#/[]/specs/storage",
+                  "kind": "primitive",
+                  "name": "storage",
+                  "occurrences": 1,
+                  "primitiveType": "string",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "string": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              },
+              {
+                "name": "dpi",
+                "target": {
+                  "id": "#/[]/specs/dpi",
+                  "kind": "primitive",
+                  "name": "dpi",
+                  "occurrences": 1,
+                  "primitiveType": "integer",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "integer": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              },
+              {
+                "name": "wireless",
+                "target": {
+                  "id": "#/[]/specs/wireless",
+                  "kind": "primitive",
+                  "name": "wireless",
+                  "occurrences": 1,
+                  "primitiveType": "boolean",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "boolean": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              },
+              {
+                "name": "width",
+                "target": {
+                  "id": "#/[]/specs/width",
+                  "kind": "primitive",
+                  "name": "width",
+                  "occurrences": 1,
+                  "primitiveType": "integer",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "integer": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              },
+              {
+                "name": "adjustable",
+                "target": {
+                  "id": "#/[]/specs/adjustable",
+                  "kind": "primitive",
+                  "name": "adjustable",
+                  "occurrences": 1,
+                  "primitiveType": "boolean",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "boolean": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              },
+              {
+                "name": "resolution",
+                "target": {
+                  "id": "#/[]/specs/resolution",
+                  "kind": "primitive",
+                  "name": "resolution",
+                  "occurrences": 1,
+                  "primitiveType": "string",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "string": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              },
+              {
+                "name": "hdr",
+                "target": {
+                  "id": "#/[]/specs/hdr",
+                  "kind": "primitive",
+                  "name": "hdr",
+                  "occurrences": 1,
+                  "primitiveType": "boolean",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "boolean": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              },
+              {
+                "name": "mechanical",
+                "target": {
+                  "id": "#/[]/specs/mechanical",
+                  "kind": "primitive",
+                  "name": "mechanical",
+                  "occurrences": 1,
+                  "primitiveType": "boolean",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "boolean": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              },
+              {
+                "name": "layout",
+                "target": {
+                  "id": "#/[]/specs/layout",
+                  "kind": "primitive",
+                  "name": "layout",
+                  "occurrences": 1,
+                  "primitiveType": "string",
+                  "nullable": false,
+                  "typeDistribution": {
+                    "string": 1
+                  }
+                },
+                "required": false,
+                "occurrences": 1,
+                "totalPopulation": 5
+              }
+            ]
+          },
+          "required": true,
+          "occurrences": 5,
+          "totalPopulation": 5
+        }
+      ]
+    }
+  }
+}

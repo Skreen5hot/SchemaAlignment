@@ -1,13 +1,73 @@
 {
-  "@context": "https://schema.org",
-  "@type": "Thing",
-  "description": "A trivial JSON-LD document for demonstrating the kernel transform.",
-  "name": "Example Input",
-  "provenance": {
-    "@type": "Provenance",
-    "kernelVersion": "0.1.0",
-    "rulesApplied": [
-      "identity"
-    ]
-  }
+  "diagnostics": [
+    {
+      "code": "SAS-010",
+      "context": {
+        "field": "created_at",
+        "matchedPattern": "(?:date|time|timestamp|created|updated|modified|born|died|started|ended|expires?)(?:_at|_on|_time)?$"
+      },
+      "level": "info",
+      "message": "Field \"created_at\" identified as temporal via name pattern match.",
+      "remediation": "Field name matches the configured temporal name pattern."
+    }
+  ],
+  "schema": {
+    "@context": {
+      "fandaws": "https://schema.fnsr.dev/fandaws/v3#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "sas": "https://schema.fnsr.dev/sas/v1#",
+      "viz": "https://schema.fnsr.dev/ecve/v4#"
+    },
+    "@type": "viz:DatasetSchema",
+    "sas:alignmentMode": "standalone",
+    "sas:fandawsAvailable": false,
+    "viz:hasField": [
+      {
+        "@id": "viz:field/region",
+        "@type": "viz:DataField",
+        "sas:alignmentRule": "consensus-promotion",
+        "sas:consensusDenominator": 500,
+        "sas:consensusNumerator": 500,
+        "sas:fandawsConsulted": false,
+        "sas:structuralType": "string",
+        "viz:consensusScore": "1.000000",
+        "viz:fieldName": "Region",
+        "viz:hasDataType": {
+          "@id": "viz:NominalType"
+        }
+      },
+      {
+        "@id": "viz:field/revenue",
+        "@type": "viz:DataField",
+        "sas:alignmentRule": "consensus-promotion",
+        "sas:consensusDenominator": 497,
+        "sas:consensusNumerator": 492,
+        "sas:fandawsConsulted": false,
+        "sas:structuralType": "string",
+        "viz:consensusScore": "0.989940",
+        "viz:fieldName": "Revenue",
+        "viz:hasDataType": {
+          "@id": "viz:QuantitativeType"
+        },
+        "viz:numericPrecision": "integer"
+      },
+      {
+        "@id": "viz:field/created-at",
+        "@type": "viz:DataField",
+        "sas:alignmentRule": "temporal-detection",
+        "sas:consensusDenominator": 500,
+        "sas:consensusNumerator": 500,
+        "sas:fandawsConsulted": false,
+        "sas:structuralType": "string",
+        "viz:consensusScore": "1.000000",
+        "viz:fieldName": "created_at",
+        "viz:hasDataType": {
+          "@id": "viz:TemporalType"
+        }
+      }
+    ],
+    "viz:rawInputHash": "sha256:fixture",
+    "viz:totalRows": 500
+  },
+  "status": "ok"
 }
