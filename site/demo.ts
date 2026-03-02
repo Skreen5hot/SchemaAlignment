@@ -88,6 +88,8 @@ const outputEl = document.getElementById("sas-output") as HTMLElement;
 const diagEl = document.getElementById("diagnostics") as HTMLElement;
 const alignBtn = document.getElementById("align-btn") as HTMLButtonElement;
 const resetBtn = document.getElementById("reset-btn") as HTMLButtonElement;
+const minObsEl = document.getElementById("cfg-min-obs") as HTMLInputElement;
+const thresholdEl = document.getElementById("cfg-threshold") as HTMLInputElement;
 
 // ---------------------------------------------------------------------------
 // Initialize with default example
@@ -115,8 +117,15 @@ alignBtn.addEventListener("click", async () => {
   // Compute hash via Web Crypto
   const rawHash = await computeHash(raw);
 
+  // Read config from UI
+  const config: Record<string, number> = {};
+  const minObs = Number(minObsEl.value);
+  if (!Number.isNaN(minObs)) config.minObservationThreshold = minObs;
+  const thresh = Number(thresholdEl.value);
+  if (!Number.isNaN(thresh)) config.consensusThreshold = thresh;
+
   // Run kernel (synchronous, never throws)
-  const result = align(cism, rawHash);
+  const result = align(cism, rawHash, config);
 
   // Render output
   outputEl.textContent = stableStringify(result, true);
