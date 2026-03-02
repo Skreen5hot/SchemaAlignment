@@ -58,7 +58,7 @@ When the Orchestrator uses these phrases, immediately adopt the persona and its 
 
 ## 4. Operational Boundaries
 
-- MUST NOT modify spec tests (`tests/determinism.test.ts`, `tests/no-network.test.ts`, `tests/snapshot.test.ts`)
+- MUST NOT modify spec tests (`tests/determinism.test.ts`, `tests/no-network.test.ts`, `tests/snapshot.test.ts`) — **exception:** Phase 1 task 1.14 may update imports and function calls from `transform()` to `align()` per ADR-008. Test semantics must not change.
 - MUST NOT add runtime dependencies to `package.json` without explicit Orchestrator approval (devDependencies are acceptable)
 - MUST NOT import from `src/adapters/` or `src/composition/` inside `src/kernel/`
 - If a change requires modifying more than 3 files simultaneously, STOP and request an **Architectural Review** from the Orchestrator before proceeding
@@ -70,7 +70,7 @@ When the Orchestrator uses these phrases, immediately adopt the persona and its 
 ### Starting a Session
 
 1. Read `project/ROADMAP.md` — identify the current phase and active task
-2. Read `project/SPEC.md` — understand the domain contract
+2. Read `project/sas-v2.0.md` — understand the domain contract
 3. Read `project/DECISIONS.md` — review prior decisions
 4. Confirm your understanding with the Orchestrator before writing code
 
@@ -107,11 +107,12 @@ Layer 2: src/adapters/        <- Optional. Infrastructure integration.
 
 | File | Purpose |
 |------|---------|
-| `src/kernel/transform.ts` | The kernel — edit this for domain logic |
-| `src/kernel/canonicalize.ts` | Deterministic JSON serialization |
-| `examples/expected-output.jsonld` | Update when transform output changes |
+| `src/kernel/transform.ts` | The kernel — `align()` function and SAS domain logic |
+| `src/kernel/canonicalize.ts` | Deterministic JSON serialization (JCS) |
+| `examples/input.jsonld` | Representative CISM input |
+| `examples/expected-output.jsonld` | Expected `viz:DatasetSchema` output |
 | `project/ROADMAP.md` | Current phase, tasks, acceptance criteria |
-| `project/SPEC.md` | Domain-specific input/output contract |
+| `project/sas-v2.0.md` | SAS v2.0 specification (authoritative domain contract) |
 | `project/DECISIONS.md` | Architecture decision log |
 | `docs/ARCHITECTURE.md` | Normative design contract (6 principles) |
 | `docs/COMPUTATION_MODEL.md` | Formal kernel specification |

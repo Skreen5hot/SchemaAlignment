@@ -1,7 +1,7 @@
 {
-  "name": "json-ld-deterministic-service-template",
+  "name": "schema-alignment-service",
   "version": "0.1.0",
-  "description": "A minimal template for building deterministic JSON-LD transformation services",
+  "description": "Schema Alignment Service — deterministic CISM-to-viz:DatasetSchema transformation",
   "type": "module",
   "main": "dist/kernel/index.js",
   "types": "dist/kernel/index.d.ts",
@@ -14,12 +14,12 @@
     "clean": "rimraf dist dist-tests"
   },
   "keywords": [
+    "schema-alignment",
+    "cism",
+    "bibss",
+    "viz",
     "json-ld",
-    "deterministic",
-    "edge-computing",
-    "architecture",
-    "offline-first",
-    "template"
+    "deterministic"
   ],
   "repository": {
     "type": "git",

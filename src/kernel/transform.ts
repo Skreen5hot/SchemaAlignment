@@ -49,14 +49,153 @@ export interface TransformError {
 }
 
 // ---------------------------------------------------------------------------
+// SAS Types — Input (§4.1, §4.2, ADR-003)
+// ---------------------------------------------------------------------------
+
+/** Opaque BIBSS inference configuration. SAS passes through, does not inspect. */
+export type InferConfig = Record<string, unknown>;
+
+/** CISM structural node (BIBSS v1.3 §9.1). */
+export interface SchemaNode {
+  kind: "object" | "array" | "primitive" | "union";
+  primitiveType?: string;
+  typeDistribution?: Record<string, number>;
+  occurrences: number;
+  nullable?: boolean;
+  id?: string;
+  properties?: SchemaEdge[];
+  itemType?: SchemaNode;
+}
+
+/** CISM property edge (BIBSS v1.3 §9.1). */
+export interface SchemaEdge {
+  name: string;
+  target: SchemaNode;
+  required?: boolean;
+  occurrences?: number;
+  totalPopulation?: number;
+}
+
+/** BIBSS CISM root document (§4.1). */
+export interface CISMRoot {
+  version: string;
+  generatedAt: string;
+  config: InferConfig;
+  root: SchemaNode;
+  sampling?: {
+    applied: boolean;
+    inputSize: number;
+    sampleSize: number;
+    strategy: "strided";
+  };
+}
+
+/** SNP v1.3 manifest entry (§4.2, ADR-007). */
+export interface ManifestEntry {
+  rule: string;
+  path: string;
+  detail?: {
+    type?: string;
+    originalValue?: string;
+    [key: string]: unknown;
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 /** Static kernel version. Update when making breaking changes. */
 const KERNEL_VERSION = "0.1.0";
 
+/** Integer scale factor for deterministic threshold comparison (§6.1). */
+export const THRESH_SCALE = 1_000_000;
+
 // ---------------------------------------------------------------------------
-// Transform
+// SAS Types — Output (§5.1, §5.2, §5.3)
+// ---------------------------------------------------------------------------
+
+/** Structured diagnostic message (§5.1). */
+export interface Diagnostic {
+  code: string;
+  level: "fatal" | "warning" | "info";
+  message: string;
+  remediation: string;
+  context: Record<string, unknown>;
+}
+
+/** viz:DataField JSON-LD object (§5.3). */
+export interface DataFieldLD {
+  "@id": string;
+  "@type": "viz:DataField";
+  "viz:fieldName": string;
+  "viz:hasDataType": { "@id": string };
+  "viz:consensusScore": string;
+  "sas:consensusNumerator": number;
+  "sas:consensusDenominator": number;
+  "sas:alignmentRule": string;
+  "sas:structuralType": string;
+  "viz:numericPrecision"?: "integer" | "float";
+  "viz:wasNormalized"?: true;
+  "viz:wasPercentage"?: true;
+  "sas:fandawsConsulted"?: boolean;
+  [key: string]: unknown;
+}
+
+/** viz:DatasetSchema JSON-LD object (§5.2). */
+export interface DatasetSchemaLD {
+  "@context": Record<string, string>;
+  "@type": "viz:DatasetSchema";
+  "viz:rawInputHash": string;
+  "viz:totalRows": number;
+  "viz:rowsInspected"?: number;
+  "sas:fandawsAvailable": boolean;
+  "sas:alignmentMode": "standalone" | "enriched";
+  "viz:hasField": DataFieldLD[];
+}
+
+/** Primary output of the align() function (§5.1). */
+export interface SASResult {
+  status: "ok" | "error";
+  schema?: DatasetSchemaLD;
+  diagnostics: Diagnostic[];
+}
+
+// ---------------------------------------------------------------------------
+// SAS Configuration (§7)
+// ---------------------------------------------------------------------------
+
+/** SAS runtime configuration (§7). */
+export interface SASConfig {
+  consensusThreshold: number;
+  minObservationThreshold: number;
+  temporalNamePattern: RegExp;
+  booleanFields: Record<string, [string, string]>;
+  nullVocabulary: Record<string, string[]>;
+  globalNullVocabulary: string[];
+}
+
+/** Default configuration matching §7 defaults. */
+export const DEFAULT_CONFIG: SASConfig = {
+  consensusThreshold: 0.95,
+  minObservationThreshold: 5,
+  temporalNamePattern:
+    /(?:date|time|timestamp|created|updated|modified|born|died|started|ended|expires?)(?:_at|_on|_time)?$/i,
+  booleanFields: {},
+  nullVocabulary: {},
+  globalNullVocabulary: [],
+};
+
+/** JSON-LD @context for viz:DatasetSchema output (§5.2). */
+export const SAS_CONTEXT: Record<string, string> = {
+  fandaws: "https://schema.fnsr.dev/fandaws/v3#",
+  prov: "http://www.w3.org/ns/prov#",
+  sas: "https://schema.fnsr.dev/sas/v1#",
+  viz: "https://schema.fnsr.dev/ecve/v4#",
+};
+
+// ---------------------------------------------------------------------------
+// Transform (template — preserved for spec test compatibility)
 // ---------------------------------------------------------------------------
 
 /**
@@ -122,5 +261,43 @@ function makeError(errorCode: string, message: string): TransformError {
       kernelVersion: KERNEL_VERSION,
       rulesApplied: [],
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// SAS Align — Stub (ADR-005, §8)
+// ---------------------------------------------------------------------------
+
+/**
+ * Align a BIBSS CISM to a viz:DatasetSchema.
+ *
+ * Synchronous. Returns SASResult directly (not a Promise).
+ * Never throws — all errors reported as diagnostics.
+ *
+ * Phase 0 stub: returns a minimal valid SASResult.
+ * Phase 1 tasks 1.1–1.12 flesh out the implementation.
+ */
+export function align(
+  cism: CISMRoot,
+  rawHash: string,
+  config?: Partial<SASConfig>,
+  snpManifest?: ManifestEntry[],
+): SASResult {
+  // Phase 0 stub — suppress unused parameter warnings
+  void config;
+  void snpManifest;
+
+  return {
+    status: "ok",
+    schema: {
+      "@context": SAS_CONTEXT,
+      "@type": "viz:DatasetSchema",
+      "viz:rawInputHash": rawHash,
+      "viz:totalRows": cism.root.occurrences,
+      "sas:fandawsAvailable": false,
+      "sas:alignmentMode": "standalone",
+      "viz:hasField": [],
+    },
+    diagnostics: [],
   };
 }
