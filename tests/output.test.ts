@@ -15,6 +15,7 @@ import type {
   SchemaNode,
   SASResult,
   DataFieldLD,
+  ActiveConfigLD,
 } from "../src/kernel/transform.js";
 
 // ---------------------------------------------------------------------------
@@ -430,6 +431,97 @@ try {
   passed++;
 } catch (e) {
   console.error("  \u2717 FAIL: invariant 15 (unique @id)");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 20: sas:activeConfig present with default values
+// ---------------------------------------------------------------------------
+try {
+  const cfg = multiResult.schema!["sas:activeConfig"];
+  ok(cfg, "sas:activeConfig must be present");
+  strictEqual(cfg["@type"], "sas:AlignmentConfiguration");
+  strictEqual(cfg["sas:consensusThreshold"], 0.95);
+  strictEqual(cfg["sas:minObservationThreshold"], 5);
+  strictEqual(typeof cfg["sas:temporalNamePattern"], "string");
+  ok(cfg["sas:temporalNamePattern"].length > 0, "temporalNamePattern must not be empty");
+  ok(Array.isArray(cfg["sas:nullVocabulary"]), "nullVocabulary must be array");
+  ok(Array.isArray(cfg["sas:booleanPairs"]), "booleanPairs must be array");
+  console.log("  \u2713 PASS: sas:activeConfig present with default values");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: sas:activeConfig default values");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 21: sas:activeConfig reflects custom config
+// ---------------------------------------------------------------------------
+try {
+  const customCism = makeCISM([
+    { name: "x", node: prim("integer", 100, { integer: 100 }) },
+  ]);
+  const customResult = align(customCism, HASH, {
+    consensusThreshold: 0.80,
+    minObservationThreshold: 2,
+  });
+  const cfg = customResult.schema!["sas:activeConfig"];
+  strictEqual(cfg["sas:consensusThreshold"], 0.80, "threshold must match custom value");
+  strictEqual(cfg["sas:minObservationThreshold"], 2, "minObs must match custom value");
+  console.log("  \u2713 PASS: sas:activeConfig reflects custom config");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: sas:activeConfig custom config");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 22: sas:activeConfig has all five required properties
+// ---------------------------------------------------------------------------
+try {
+  const cfg = multiResult.schema!["sas:activeConfig"];
+  const requiredKeys = [
+    "sas:consensusThreshold",
+    "sas:minObservationThreshold",
+    "sas:temporalNamePattern",
+    "sas:nullVocabulary",
+    "sas:booleanPairs",
+  ];
+  for (const key of requiredKeys) {
+    ok((cfg as unknown as Record<string, unknown>)[key] !== undefined, `${key} must be present`);
+  }
+  console.log("  \u2713 PASS: sas:activeConfig has all five required properties");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: sas:activeConfig required properties");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 23: sas:activeConfig JCS key ordering
+// ---------------------------------------------------------------------------
+try {
+  const canonical = stableStringify(multiResult, false);
+  const parsed = JSON.parse(canonical);
+  const cfgKeys = Object.keys(parsed.schema["sas:activeConfig"]);
+  for (let i = 1; i < cfgKeys.length; i++) {
+    ok(cfgKeys[i] >= cfgKeys[i - 1],
+      `config keys not sorted: "${cfgKeys[i - 1]}" > "${cfgKeys[i]}"`);
+  }
+  // Verify position: sas:activeConfig before sas:alignmentMode
+  const schemaKeys = Object.keys(parsed.schema);
+  const configIdx = schemaKeys.indexOf("sas:activeConfig");
+  const modeIdx = schemaKeys.indexOf("sas:alignmentMode");
+  ok(configIdx >= 0, "sas:activeConfig must exist in canonical output");
+  ok(configIdx < modeIdx, "sas:activeConfig must sort before sas:alignmentMode");
+  console.log("  \u2713 PASS: sas:activeConfig JCS key ordering correct");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: sas:activeConfig JCS ordering");
   console.error(" ", e instanceof Error ? e.message : String(e));
   failed++;
 }

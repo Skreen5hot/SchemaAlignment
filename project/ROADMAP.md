@@ -588,6 +588,23 @@ Interactive demo for non-technical SMEs. Deployed via GitHub Pages CI/CD.
 - [x] `npm run build` still passes (no regressions)
 - [x] `npm test` still passes (59/59)
 
+### 1.20 Configuration-in-Output (`sas:activeConfig`)
+
+**Status:** Complete | **Priority:** High
+
+Include active alignment configuration in every SAS output for auditability and reproducibility (ADR-010).
+
+**Acceptance Criteria:**
+
+- [x] `sas:activeConfig` block present in every SAS output
+- [x] All five config properties present, including when values equal defaults
+- [x] Config values in output match the config passed to `align()` — byte-identical after JCS
+- [x] JCS key ordering correct (`sas:activeConfig` sorts between `@type` and `sas:alignmentMode`)
+- [x] Existing tests pass after snapshot regeneration
+- [x] 4 new config-presence invariant tests pass (63/63 total)
+- [x] `npm run build` still passes (no regressions)
+- [x] `npm run test:purity` still passes
+
 ---
 
 **NOT in scope for Phase 1:**
@@ -605,6 +622,7 @@ Interactive demo for non-technical SMEs. Deployed via GitHub Pages CI/CD.
 - Consensus tie-breaking on equal counts uses widening lattice (ADR-006)
 - SNP manifest matching uses `detail.type`, not `rule` (ADR-007)
 - Spec test adaptation authorized for template-to-SAS migration (ADR-008)
+- Active config included in SAS output for auditability (ADR-010)
 
 ---
 

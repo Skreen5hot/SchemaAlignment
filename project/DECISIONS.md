@@ -158,3 +158,19 @@
 - Implementation introduces `rowNode`: for `kind: "object"` roots, use root directly; for `kind: "array"` roots, use `root.itemType`
 - `viz:totalRows = sampling?.applied ? sampling.inputSize : rowNode.occurrences`
 - Snapshot test fixture (`examples/expected-output.jsonld`) reflects the correct value (500, not 1)
+
+## ADR-010: Include Active Configuration in SAS Output
+
+**Date:** 2026-03-02
+
+**Decision:** Every SAS output includes `sas:activeConfig` at the schema level, containing all five config properties (consensusThreshold, minObservationThreshold, temporalNamePattern, nullVocabulary, booleanPairs) — even when values equal defaults.
+
+**Context:** Phase 1 review misdiagnosed three correct behaviors as bugs because the output didn't indicate what config was used. The reviewer assumed default threshold (0.95) when the SMEs had lowered it to ~0.50. Without config in the output, consensus scores are ambiguous — a score of 0.80 could be a pass or fail depending on the threshold. FBO v1.1 defines `fbo:AlignmentConfiguration` but had no serialized representation in SAS output, creating a provenance gap.
+
+**Consequences:**
+- `sas:activeConfig` is a required sibling of `viz:hasField` in DatasetSchemaLD
+- All five properties always present (no "absent means default" ambiguity)
+- JCS ordering: `sas:activeConfig` sorts before `sas:alignmentMode`
+- Snapshot tests and expected-output.jsonld updated
+- 4 new invariant tests verify presence, values, required properties, and JCS ordering
+- Additive-only change — no existing keys removed or renamed

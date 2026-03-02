@@ -152,9 +152,20 @@ export interface DataFieldLD {
 }
 
 /** viz:DatasetSchema JSON-LD object (§5.2). */
+/** Serialized alignment configuration in output (§7, sas:activeConfig). */
+export interface ActiveConfigLD {
+  "@type": "sas:AlignmentConfiguration";
+  "sas:booleanPairs": { "sas:fieldName": string; "sas:trueValue": string; "sas:falseValue": string }[];
+  "sas:consensusThreshold": number;
+  "sas:minObservationThreshold": number;
+  "sas:nullVocabulary": string[];
+  "sas:temporalNamePattern": string;
+}
+
 export interface DatasetSchemaLD {
   "@context": Record<string, string>;
   "@type": "viz:DatasetSchema";
+  "sas:activeConfig": ActiveConfigLD;
   "viz:rawInputHash": string;
   "viz:totalRows": number;
   "viz:rowsInspected"?: number;
@@ -367,11 +378,12 @@ function alignInner(
   const schema: DatasetSchemaLD = {
     "@context": SAS_CONTEXT,
     "@type": "viz:DatasetSchema",
+    "sas:activeConfig": serializeConfig(merged),
+    "sas:alignmentMode": "standalone",
+    "sas:fandawsAvailable": false,
+    "viz:hasField": [],
     "viz:rawInputHash": rawHash,
     "viz:totalRows": totalRows,
-    "sas:fandawsAvailable": false,
-    "sas:alignmentMode": "standalone",
-    "viz:hasField": [],
   };
 
   if (cism.sampling?.applied) {
@@ -515,6 +527,30 @@ function alignInner(
   }
 
   return { status: "ok", schema, diagnostics };
+}
+
+/**
+ * Serialize SASConfig to the sas:activeConfig output block (§7).
+ * All five fields are always present, even when values equal defaults.
+ */
+function serializeConfig(config: SASConfig): ActiveConfigLD {
+  // Convert booleanFields Record to sorted array
+  const booleanPairs = Object.entries(config.booleanFields)
+    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+    .map(([field, [trueVal, falseVal]]) => ({
+      "sas:fieldName": field,
+      "sas:trueValue": trueVal,
+      "sas:falseValue": falseVal,
+    }));
+
+  return {
+    "@type": "sas:AlignmentConfiguration" as const,
+    "sas:booleanPairs": booleanPairs,
+    "sas:consensusThreshold": config.consensusThreshold,
+    "sas:minObservationThreshold": config.minObservationThreshold,
+    "sas:nullVocabulary": [...config.globalNullVocabulary].sort(),
+    "sas:temporalNamePattern": config.temporalNamePattern.source,
+  };
 }
 
 /** Create a Diagnostic object (§5.1). */

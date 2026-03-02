@@ -19,6 +19,14 @@
       "viz": "https://schema.fnsr.dev/ecve/v4#"
     },
     "@type": "viz:DatasetSchema",
+    "sas:activeConfig": {
+      "@type": "sas:AlignmentConfiguration",
+      "sas:booleanPairs": [],
+      "sas:consensusThreshold": 0.95,
+      "sas:minObservationThreshold": 5,
+      "sas:nullVocabulary": [],
+      "sas:temporalNamePattern": "(?:date|time|timestamp|created|updated|modified|born|died|started|ended|expires?)(?:_at|_on|_time)?$"
+    },
     "sas:alignmentMode": "standalone",
     "sas:fandawsAvailable": false,
     "viz:hasField": [
