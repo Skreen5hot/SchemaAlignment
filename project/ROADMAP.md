@@ -6,7 +6,7 @@
   understand what to work on and — critically — what NOT to touch.
 
   Authoritative spec: project/sas-v2.0.md
-  Decisions log: project/DECISIONS.md (ADR-001 through ADR-008)
+  Decisions log: project/DECISIONS.md (ADR-001 through ADR-010)
 -->
 
 ## Phase 0: Repository Adaptation
@@ -605,6 +605,33 @@ Include active alignment configuration in every SAS output for auditability and 
 - [x] `npm run build` still passes (no regressions)
 - [x] `npm run test:purity` still passes
 
+### 1.21 SAS v2.1 Addendum — Test Coverage and serializeConfig Fix
+
+**Status:** Complete | **Priority:** High | **Spec:** sas-v2.1-addendum.md §7
+
+Write the 8 test cases (T-15 through T-22) and 2 property invariants (P-10, P-11)
+specified in the v2.1 addendum. Fix `serializeConfig()` to flatten per-field
+`nullVocabulary` per addendum §2.2. Fix SAS-008 emission on null vocabulary
+exhaustion (all values reclassified to null).
+
+**Acceptance Criteria:**
+
+- [x] `serializeConfig()` merges `globalNullVocabulary` and per-field `nullVocabulary` values into `sas:nullVocabulary` — deduplicated case-insensitively, sorted lexicographically (JCS)
+- [x] SAS-008 diagnostic emitted when null vocabulary exhausts all values (not just when it changes the consensus winner)
+- [x] T-15: activeConfig defaults — `booleanPairs: []`, `nullVocabulary: []` (output.test.ts)
+- [x] T-16: activeConfig custom config with merged nullVocab (output.test.ts)
+- [x] T-17: booleanPairs sorted by fieldName, JCS key order within entries (output.test.ts)
+- [x] T-18: cism-validation-failed → UnknownType, 0/0, SAS-013 (output.test.ts)
+- [x] T-19: temporal SNP evidence → TemporalType, wasNormalized NOT present (rules.test.ts)
+- [x] T-20: null vocab exhaustion → UnknownType, structural-passthrough, SAS-008 (rules.test.ts)
+- [x] T-21: fandawsConsulted always present as `false` on all fields (output.test.ts)
+- [x] T-22: consensus tie-breaking — already covered by consensus.test.ts test 7
+- [x] P-10: activeConfig completeness invariant (output.test.ts)
+- [x] P-11: fandawsConsulted universality invariant (output.test.ts)
+- [x] `npm run build` — zero TypeScript errors
+- [x] `npm test` — 72/72 tests pass
+- [x] `npm run test:purity` passes
+
 ---
 
 **NOT in scope for Phase 1:**
@@ -623,6 +650,7 @@ Include active alignment configuration in every SAS output for auditability and 
 - SNP manifest matching uses `detail.type`, not `rule` (ADR-007)
 - Spec test adaptation authorized for template-to-SAS migration (ADR-008)
 - Active config included in SAS output for auditability (ADR-010)
+- SAS v2.1 addendum formalizes ADR-006, ADR-007, ADR-009, ADR-010 into the specification
 
 ---
 
@@ -630,33 +658,354 @@ Include active alignment configuration in every SAS output for auditability and 
 
 **Goal:** Add Fandaws enrichment to the static core: `FandawsScope` interface, field-to-concept resolution (§6.7.1), type override/veto (§6.7.2–§6.7.3), epistemic matrix (§6.7.5), null vocabulary override (§6.7.4), metric pre-matching (§6.7.6).
 
-**Status:** Not Started
+**Spec:** [sas-v2.0.md §4.3, §6.3, §6.4, §6.7, §9.1](./sas-v2.0.md) | [sas-v2.1-addendum.md §1.2, §1.6, §9](./sas-v2.1-addendum.md)
 
-<!-- Define sub-tasks when Phase 1 static core is stable. -->
+**Status:** Not Started — Blocked on Fandaws team answers (see §Questions below)
 
-**Implementation notes for Phase 1v2 planning:**
+---
 
-- **Fandaws tie-breaker sort is mandatory for determinism (§6.7.1):** When `resolveTerm` returns multiple concepts, SAS MUST sort them lexicographically by `id` before selecting the first. This defensive tie-breaker ensures byte-identical output even if the caller's `FandawsScope` implementation returns concepts in nondeterministic order (e.g., hash-map iteration). The sort is a safety net — a well-behaved scope already returns concepts in priority order (context → user → global), but SAS does not trust this. This MUST be tested with a shuffled-order `FandawsScope` mock.
-- The `align()` signature already reserves the `fandaws?` parameter (Phase 1 ignores it). Phase 1v2 activates it.
-- §13.3 invariants 9–10 and 13 apply once Fandaws is active.
+### Assumptions
 
-**NOT in scope:**
-- Modifying static core rule behavior
+These assumptions are derived from the SAS v2.0 spec and the v2.1 addendum. They govern how we plan to build the enrichment layer. If any are wrong, the implementation plan changes.
+
+**A-1: FandawsScope is provided by the caller, fully resolved in memory.**
+SAS does not load, cache, or manage Fandaws knowledge graphs. The caller constructs a synchronous `FandawsScope` and passes it to `align()`. SAS queries it and discards the reference. (§4.3)
+
+**A-2: All FandawsScope methods are synchronous, pure, and stable.**
+No Promises, no I/O, no side effects. Identical inputs → identical outputs across calls within a single `align()` invocation. (§4.3 determinism contract)
+
+**A-3: We can test the entire enrichment layer with mock FandawsScope implementations.**
+No real Fandaws knowledge graph is needed. We build mock scopes that return hardcoded concept hierarchies for known test fields. This is how the spec's determinism contract enables isolated testing.
+
+**A-4: Type guidance is determined by inspecting concept properties and parent chains.**
+The spec (§6.7.2) says "If Fandaws says the field is a coded identifier (e.g., the concept's parent chain includes a coding system)." We assume this means calling `hasProperty(conceptId, propertyPath)` with specific property paths — but the spec does not enumerate those paths. See Q-2.
+
+**A-5: The epistemic matrix threshold is strictly greater than 0.99.**
+The spec says "consensus > 0.99" in the epistemic matrix table (§6.7.5). We interpret this as strictly greater than, not ≥. A score of exactly 0.990000 falls in the "≤ 0.99" column.
+
+**A-6: Fandaws enrichment runs before the static cascade, not alongside it.**
+Per §9.1 step 4.d-e: if Fandaws produces a classification, the static cascade is skipped for that field. The two rule sets are mutually exclusive per field — if Fandaws fires, only the Fandaws rule name is recorded. (v2.1 addendum §1.2 confirms this.)
+
+**A-7: The static cascade still runs as a fallback.**
+When Fandaws is available but returns no match (`resolveTerm` returns `[]`), the field falls through to the existing static cascade. Output carries `sas:fandawsConsulted: true, sas:fandawsMatch: null`. (§5.4)
+
+**A-8: `fandaws:nullEquivalentValues` is a string array on the concept's properties.**
+The spec (§6.7.4) says "Fandaws returns a concept with a `fandaws:nullEquivalentValues` property listing the domain's null vocabulary." We assume this is accessed via `getConcept(id).properties["fandaws:nullEquivalentValues"]` and is `string[]`.
+
+**A-9: The `align()` signature gains the 5th `fandaws?` parameter.**
+Currently `align(cism, rawHash, config?, snpManifest?)`. Phase 1v2 adds `fandaws?: FandawsScope` as the 5th parameter per §8. The parameter already exists in the spec — Phase 1 just ignores it. (ADR-004)
+
+**A-10: sas:metricHint is a pass-through annotation, not a type decision.**
+Metric pre-matching (§6.7.6) annotates the field but does not affect type assignment. It's an internal optimization hint for the downstream ECVE pipeline. We record it and move on.
+
+---
+
+### Questions for the Fandaws Team
+
+These questions block specific sub-tasks. We can begin implementation on tasks that don't depend on the answers (1v2.1–1v2.3), but tasks 1v2.4–1v2.7 need responses.
+
+**Q-1: What are the exact property paths for type guidance?**
+§6.7.2 describes type override based on concept properties and parent chains:
+- "Coded identifier" — what property or parent concept IRI indicates this? Is it `hasProperty(id, "fandaws:isCodingSystem")` or checking if `parentConcepts` includes a specific IRI?
+- "Temporal concept" — same question. Is it a parent chain check (`parentConcepts.includes("fandaws:TemporalEntity")`) or a property flag?
+- "Boolean pair" — what indicates a concept is boolean-valued? A property `fandaws:isBooleanPair`? A specific parent concept?
+- "Quantity with units" — is this `hasProperty(id, "fandaws:hasUnit")`?
+
+Without these answers, we cannot implement the `classifyByFandaws()` function.
+
+**Q-2: How does type veto work mechanically?**
+§6.7.3 says Fandaws can veto boolean classification when "Y" maps to a non-boolean concept. The mechanism is: call `resolveValue("Y")` and check if the returned concept is non-boolean. But:
+- Does `resolveValue` always return the highest-priority concept, or all candidates?
+- If it returns multiple concepts, which one governs the veto?
+- Is the veto check only on the boolean pair's true/false values, or on the field name too?
+
+**Q-3: Do you have test fixtures?**
+Can you provide sample `FandawsScope` implementations (or JSON data) for the following scenarios?
+- A scope with a committed concept that overrides a numeric field to NominalType (coded identifier like ICD-10)
+- A scope with an imported concept that contradicts high-consensus structural evidence (epistemic matrix "suggestion only" case)
+- A scope with a concept that vetoes boolean classification (chromosome Y example)
+- A scope with `fandaws:nullEquivalentValues` for null vocabulary override
+- A scope with `fandaws:metricAlignment` for metric pre-matching
+- An empty scope (returns no matches for anything — exercises the fallback path)
+
+If not, we will build synthetic mocks based on the spec text and need you to validate them.
+
+**Q-4: Is there a reference implementation of FandawsScope?**
+Does a concrete implementation exist in any other service (ECVE, BIBSS) that we can examine for interface conventions? Or is SAS the first consumer?
+
+**Q-5: What is the `id` format for deterministic sorting?**
+§6.7.1 says "sort concepts lexicographically by `id`." The `FandawsConcept.id` field is described as "Fandaws IRI (e.g., `fandaws:concept/diagnostic_code`)." Is this always a compact IRI with the `fandaws:` prefix, or could it be a full HTTP IRI? The sort order differs depending on format.
+
+**Q-6: What are the Fandaws-specific output properties we need to support?**
+The spec mentions these Fandaws output annotations (§5.5). Confirming the complete list:
+- `sas:fandawsConsulted` (boolean) — already implemented
+- `sas:fandawsMatch` (string IRI | null) — not yet implemented
+- `sas:fandawsEpistemicStatus` ("committed" | "imported") — not yet implemented
+- `sas:fandawsOverride` (boolean) — not yet implemented
+- `sas:fandawsOverrideReason` (string) — not yet implemented
+- `sas:fandawsSuggestion` (boolean) — not yet implemented
+- `sas:fandawsOverrideStrength` ("advisory") — mentioned in v2.1 addendum only
+- `sas:metricHint` (string IRI) — not yet implemented
+
+Are there any additional annotations not listed in §5.5?
+
+**Q-7: Is `fandaws:nullEquivalentValues` always per-concept or per-field?**
+§6.7.4 says the concept has this property. But does it apply to all fields that match the concept, or only to fields where the concept was the primary match? Example: if field "status" matches concept "DiagnosticCode" and that concept has `nullEquivalentValues: ["N/A"]`, does the null vocabulary apply to "status" only or to all fields?
+
+---
+
+### Sub-Tasks
+
+#### 1v2.1 Define FandawsScope and FandawsConcept Types
+
+**Status:** Not Started | **Priority:** High | **Spec:** §4.3
+**Blocked by:** Nothing — type definitions are in the spec
+
+Define the `FandawsScope` interface and `FandawsConcept` interface in `src/kernel/transform.ts`. Export them. Extend the `align()` signature to accept the 5th `fandaws?` parameter.
+
+#### 1v2.2 Build Mock FandawsScope Test Harness
+
+**Status:** Not Started | **Priority:** High
+**Blocked by:** Q-3 (test fixtures — can start with synthetic mocks, validate later)
+
+Create `tests/fandaws-mocks.ts` with reusable mock `FandawsScope` implementations:
+- Empty scope (no matches)
+- Committed concept scope (type override)
+- Imported concept scope (epistemic matrix)
+- Boolean veto scope
+- Null vocabulary scope
+- Metric hint scope
+- Shuffled-order scope (determinism tie-breaker test)
+
+#### 1v2.3 Implement Field-to-Concept Resolution (§6.7.1)
+
+**Status:** Not Started | **Priority:** High | **Spec:** §6.7.1
+**Blocked by:** 1v2.1
+
+For each field, call `resolveTerm(fieldName)`. Sort results by `id`. Select first. Record `sas:fandawsMatch` and `sas:fandawsEpistemicStatus`. If no match: record `sas:fandawsConsulted: true, sas:fandawsMatch: null`.
+
+#### 1v2.4 Implement Type Override (§6.7.2)
+
+**Status:** Not Started | **Priority:** High | **Spec:** §6.7.2
+**Blocked by:** Q-1 (property paths for type guidance), 1v2.3
+
+If matched concept has type guidance, override or confirm static classification. Rule name: `"fandaws-override"`. Emit SAS-004.
+
+#### 1v2.5 Implement Type Veto (§6.7.3)
+
+**Status:** Not Started | **Priority:** Medium | **Spec:** §6.7.3
+**Blocked by:** Q-2 (veto mechanics), 1v2.4
+
+If static classification assigns BooleanType but Fandaws identifies the boolean pair's values as non-boolean concepts, veto. Revert to NominalType. Rule name: `"fandaws-override"`. Emit SAS-005.
+
+#### 1v2.6 Implement Epistemic Matrix (§6.7.5)
+
+**Status:** Not Started | **Priority:** High | **Spec:** §6.7.5
+**Blocked by:** 1v2.4
+
+Apply the 2×2 matrix: committed/imported × consensus>0.99/≤0.99. Hard override, soft override, or suggestion only. Record `sas:fandawsOverride`, `sas:fandawsSuggestion`, `sas:fandawsOverrideStrength`. Emit SAS-011 for suggestion-only cases.
+
+#### 1v2.7 Implement Null Vocabulary Override (§6.7.4)
+
+**Status:** Not Started | **Priority:** Medium | **Spec:** §6.7.4
+**Blocked by:** Q-7 (per-concept vs per-field), 1v2.3
+
+If matched concept has `fandaws:nullEquivalentValues`, reclassify those values as null and recompute consensus. Rule name: `"null-vocabulary-fandaws"`. Emit SAS-008.
+
+#### 1v2.8 Implement Boolean Pair Detection via Fandaws (§6.3)
+
+**Status:** Not Started | **Priority:** Medium | **Spec:** §6.3
+**Blocked by:** Q-1 (boolean concept indicator), 1v2.3
+
+If Fandaws identifies the field as boolean-valued in the domain. Rule name: `"boolean-pair-fandaws"`. Emit SAS-004.
+
+#### 1v2.9 Implement Metric Pre-Matching (§6.7.6)
+
+**Status:** Not Started | **Priority:** Low | **Spec:** §6.7.6
+**Blocked by:** 1v2.3
+
+If matched concept has `fandaws:metricAlignment`, record `sas:metricHint`. Does not affect type assignment.
+
+#### 1v2.10 Wire Enrichment into Cascade
+
+**Status:** Not Started | **Priority:** High | **Spec:** §9.1 steps 4.d–e
+**Blocked by:** 1v2.3 through 1v2.9
+
+Insert Fandaws enrichment before the static cascade. If Fandaws produces a classification, skip static rules. Update `sas:alignmentMode` to `"enriched"` when scope is provided. Update `sas:fandawsAvailable` to `true`.
+
+#### 1v2.11 Write Fandaws Domain Tests
+
+**Status:** Not Started | **Priority:** High | **Spec:** §13.2, §13.3
+**Blocked by:** 1v2.10
+
+Test file: `tests/fandaws.test.ts`. Cover:
+- §13.3 invariants 9, 10, 13 (Fandaws-specific)
+- SAS-004, SAS-005, SAS-006, SAS-011 diagnostics
+- Enrichment-then-fallback path
+- Deterministic tie-breaker (shuffled scope)
+- Epistemic matrix all 4 cells
+- Type veto
+- Null vocab override via Fandaws
+- Metric hint annotation
+
+#### 1v2.12 Update Snapshot and Documentation
+
+**Status:** Not Started | **Priority:** Medium
+**Blocked by:** 1v2.11
+
+Update `examples/` fixtures for enriched mode. Update ROADMAP, DECISIONS. Register any new output terms with the FBO team (per integration brief §Questions).
+
+---
+
+**NOT in scope for Phase 1v2:**
+- Modifying static core rule behavior (the static cascade is locked)
 - Adding runtime dependencies
+- Implementing async FandawsScope support
+- Loading or managing Fandaws knowledge graphs
 
 ---
 
 ## Phase 2: Build Adapters
 
-**Goal:** Expose the kernel through infrastructure adapters.
+**Goal:** Expose the kernel through infrastructure adapters (HTTP API, potentially others). The kernel remains pure — adapters handle I/O, serialization, error mapping, and infrastructure concerns.
 
-**Status:** Not Started
+**Spec:** [ARCHITECTURE.md](../docs/ARCHITECTURE.md) Layer 2 | [sas-v2.0.md §8](./sas-v2.0.md)
 
-<!-- Define sub-tasks when Phase 1v2 is complete. -->
+**Status:** Not Started — Blocked on Product Owner decisions (see §Questions below)
 
-**NOT in scope:**
+---
+
+### Assumptions
+
+**A-1: The primary adapter is an HTTP REST API.**
+The most common integration pattern for a deterministic service. Accepts CISM + config as JSON request body, returns SASResult as JSON response body.
+
+**A-2: The kernel remains untouched.**
+Adapters import from `src/kernel/` but never modify it. All I/O, error handling, logging, and infrastructure concerns live in `src/adapters/`. Enforced by `npm run test:purity`.
+
+**A-3: The caller computes `rawHash` before calling the adapter.**
+The SHA-256 hash of the raw input is computed by the caller (or a preceding pipeline stage like SNP) and passed to the adapter. SAS does not access raw data — ever.
+
+**A-4: The CLI adapter already exists.**
+`src/kernel/index.ts` provides a minimal CLI entry point that calls `align()` directly. Phase 2 adds an HTTP adapter alongside it, not replacing it.
+
+**A-5: No authentication or authorization at the adapter layer.**
+SAS is a pure computation service. AuthN/AuthZ belongs to the API gateway or service mesh that sits in front of it. If this assumption is wrong, scope expands significantly.
+
+**A-6: FandawsScope is provided per-request, not shared.**
+Each HTTP request includes (or references) its own Fandaws scope. The adapter deserializes it and passes it to `align()`. There is no persistent scope across requests.
+
+---
+
+### Questions for the Product Owner
+
+These questions determine the scope, shape, and priority of Phase 2 tasks. We cannot write acceptance criteria without answers.
+
+**Q-1: What adapter types are needed?**
+- HTTP/REST? (assumed primary)
+- gRPC?
+- Message queue consumer (SQS, RabbitMQ, Kafka)?
+- Serverless function (AWS Lambda, Azure Functions)?
+- The CLI already exists — is that sufficient for non-HTTP use cases?
+
+**Q-2: What is the deployment target?**
+- Long-running Node.js process (Express/Fastify)?
+- Serverless (Lambda, Cloud Functions)?
+- Edge worker (Cloudflare Workers, Deno Deploy)?
+- Container (Docker → Kubernetes)?
+- This affects dependency choices, startup time, and cold start concerns.
+
+**Q-3: Is there an existing API contract?**
+- An OpenAPI/Swagger spec to conform to?
+- An existing API gateway with routing conventions?
+- Standard request/response envelope formats used by other services in the pipeline?
+
+**Q-4: How is FandawsScope provided over HTTP?**
+This is the hardest design question. Options:
+- **Option A:** Caller serializes the entire scope as JSON in the request body. Simple but potentially large.
+- **Option B:** Caller provides a scope ID; the adapter loads the scope from a shared store. Requires infrastructure.
+- **Option C:** FandawsScope is not supported over HTTP — enriched mode is only available via direct library import.
+- **Option D:** The adapter hosts a pre-loaded scope in memory, configured at startup.
+
+Each option has different performance, scalability, and complexity implications.
+
+**Q-5: What about observability?**
+- Structured logging format? (JSON lines, OpenTelemetry?)
+- Metrics endpoint? (Prometheus `/metrics`?)
+- Health check / readiness probe endpoints?
+- Request tracing (correlation IDs, distributed trace headers)?
+
+**Q-6: What about request validation and error handling?**
+- Maximum CISM size? (fields, rows, request body bytes)
+- Request timeout?
+- Rate limiting? (or handled by gateway)
+- How should malformed JSON be reported? (HTTP 400 with diagnostic, or SASResult with status "error"?)
+
+**Q-7: What about versioning?**
+- URL path versioning (`/v1/align`, `/v2/align`)?
+- Header versioning (`Accept: application/vnd.sas.v1+json`)?
+- No versioning needed for internal service?
+
+**Q-8: Should the adapter serve the demo site?**
+The GitHub Pages demo already exists. Should the HTTP adapter also serve the static demo files, or is that a completely separate deployment?
+
+**Q-9: What are the performance requirements?**
+- Expected request volume (requests/sec)?
+- Latency target (p95, p99)?
+- Concurrent request handling model (single-threaded event loop sufficient, or worker threads needed)?
+- The kernel is synchronous and CPU-bound — does this affect the adapter architecture?
+
+**Q-10: Are there pipeline integration requirements?**
+- Does SAS need to call other services (SNP, BIBSS, ECVE) or only be called by them?
+- Is there a pipeline orchestrator that manages the SNP → BIBSS → SAS → ECVE flow?
+- Does the adapter need to accept pipeline-specific headers or metadata?
+
+---
+
+### Sub-Tasks (Preliminary — Pending PO Answers)
+
+These are placeholder tasks based on assumptions. Final acceptance criteria depend on Q-1 through Q-10 answers.
+
+#### 2.1 HTTP Adapter — Core Request/Response
+
+Implement `src/adapters/http.ts`:
+- POST `/align` endpoint accepting JSON body `{ cism, rawHash, config?, snpManifest?, fandaws? }`
+- Returns `SASResult` as JSON response
+- Content-Type validation, request body size limit
+- Error mapping: SASResult status "error" → HTTP 200 (business error), malformed request → HTTP 400
+
+#### 2.2 HTTP Adapter — Health and Readiness
+
+- GET `/health` → 200 OK
+- GET `/ready` → 200 if kernel loads, 503 if not
+- Response includes kernel version from `package.json`
+
+#### 2.3 HTTP Adapter — Input Validation
+
+- CISM JSON schema validation before passing to kernel
+- Request size limits
+- Content-Type enforcement
+
+#### 2.4 HTTP Adapter — Observability
+
+- Structured JSON logging (request received, align duration, response status)
+- Request correlation ID (from header or generated)
+- Optional Prometheus metrics endpoint
+
+#### 2.5 HTTP Adapter — Deployment Configuration
+
+- Environment-based config (port, log level, max body size)
+- Dockerfile
+- CI/CD integration
+
+---
+
+**NOT in scope for Phase 2:**
 - Modifying the kernel
 - Adding runtime dependencies to the kernel
+- Authentication / authorization (gateway responsibility)
+- Pipeline orchestration (that's Phase 3)
+- Fandaws scope management (that's the caller's responsibility)
 
 ---
 

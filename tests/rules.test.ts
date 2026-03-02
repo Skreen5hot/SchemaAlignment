@@ -1,11 +1,11 @@
 /**
  * Rules Tests — Temporal, Boolean, Null Vocab, Normalization
  *
- * 11 test cases for post-consensus rules: temporal detection (name + SNP),
+ * 13 test cases for post-consensus rules: temporal detection (name + SNP),
  * boolean pair detection, null vocabulary reclassification, SNP annotations,
- * and nested structure skipping.
+ * nested structure skipping, and SAS v2.1 addendum tests (T-19, T-20).
  *
- * Task 1.16 from ROADMAP.md.
+ * Tasks 1.16 and 1.21 from ROADMAP.md.
  */
 
 import { strictEqual, ok } from "node:assert";
@@ -329,6 +329,69 @@ try {
   passed++;
 } catch (e) {
   console.error("  \u2717 FAIL: nested structure skipped");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 12 (T-19): Temporal (SNP evidence) — wasNormalized NOT present
+// field "order_id" (no temporal name match), SNP date_converted → TemporalType
+// wasNormalized must NOT be present (date conversion ≠ normalization)
+// ---------------------------------------------------------------------------
+try {
+  const cism = makeCISM([{
+    name: "order_id",
+    node: { kind: "primitive", primitiveType: "string", occurrences: 100, typeDistribution: { string: 100 } },
+  }]);
+  const manifest: ManifestEntry[] = [
+    { rule: "snp", path: "order_id", detail: { type: "date_converted" } },
+  ];
+  const result = align(cism, HASH, undefined, manifest);
+  const field = getField(result);
+  strictEqual(field["viz:hasDataType"]["@id"], "viz:TemporalType");
+  strictEqual(field["sas:alignmentRule"], "temporal-detection-snp-evidence");
+  ok(hasDiag(result, "SAS-009"), "expected SAS-009");
+  // Key addendum assertion: wasNormalized must NOT be present
+  strictEqual(field["viz:wasNormalized"], undefined,
+    "date_converted must NOT set wasNormalized");
+  console.log("  \u2713 PASS: T-19 temporal SNP evidence \u2192 TemporalType, no wasNormalized");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: T-19 temporal SNP evidence (wasNormalized absence)");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 13 (T-20): structural-passthrough after null vocabulary exhaustion
+// All values reclassified → nonNullTotal=0 → UnknownType, structural-passthrough
+// ---------------------------------------------------------------------------
+try {
+  const cism = makeCISM([{
+    name: "status",
+    node: { kind: "primitive", primitiveType: "string", occurrences: 10, typeDistribution: { string: 10 } },
+  }]);
+  const config: Partial<SASConfig> = {
+    nullVocabulary: { status: ["N/A", "none", "-", "null", "unknown", "na", "not available", "n/a", "pending", "tbd"] },
+  };
+  const result = align(cism, HASH, config);
+  const field = getField(result);
+  // After reclassification: all 10 strings → null, nonNullTotal = 0
+  strictEqual(field["viz:hasDataType"]["@id"], "viz:UnknownType",
+    "null exhaustion must produce UnknownType");
+  strictEqual(field["sas:alignmentRule"], "structural-passthrough",
+    "rule must be structural-passthrough, not unknown-assignment");
+  strictEqual(field["viz:consensusScore"], "0.000000");
+  strictEqual(field["sas:consensusNumerator"], 0);
+  strictEqual(field["sas:consensusDenominator"], 0);
+  // Must be SAS-008 (null vocab), NOT SAS-013 (validation) or SAS-002 (empty field)
+  ok(hasDiag(result, "SAS-008"), "expected SAS-008 diagnostic");
+  ok(!hasDiag(result, "SAS-013"), "must NOT have SAS-013");
+  ok(!hasDiag(result, "SAS-002"), "must NOT have SAS-002");
+  console.log("  \u2713 PASS: T-20 null vocab exhaustion \u2192 UnknownType, structural-passthrough, SAS-008");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: T-20 null vocab exhaustion");
   console.error(" ", e instanceof Error ? e.message : String(e));
   failed++;
 }

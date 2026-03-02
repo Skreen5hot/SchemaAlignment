@@ -174,3 +174,18 @@
 - Snapshot tests and expected-output.jsonld updated
 - 4 new invariant tests verify presence, values, required properties, and JCS ordering
 - Additive-only change — no existing keys removed or renamed
+
+---
+
+## SAS v2.1 Addendum Cross-Reference
+
+**Date:** 2026-03-02
+
+The SAS v2.1 addendum (`project/sas-v2.1-addendum.md`) formalizes four ADRs into the normative specification:
+
+- **ADR-006** (Consensus tie-breaking) → addendum §4.1
+- **ADR-007** (SNP manifest matching) → addendum §4.2
+- **ADR-009** (Array root totalRows) → addendum §4.3
+- **ADR-010** (Active config in output) → addendum §2
+
+The addendum also closes two additional spec gaps not covered by ADRs: exhaustive alignment rule registry (§1) and conditional property emission rules (§3). Eight new test cases (T-15 through T-22) and two property invariants (P-10, P-11) are specified in §7.

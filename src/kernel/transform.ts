@@ -469,6 +469,13 @@ function alignInner(
             ));
             result = { ...result, ruleName: "null-vocabulary-configured" };
           }
+        } else if (nullVocab.adjusted && !hasTypedValues) {
+          // Null vocabulary exhausted all values → UnknownType via structural-passthrough
+          diagnostics.push(makeDiag("SAS-008", "info",
+            `Field "${fieldName}": null vocabulary reclassified all ${nullVocab.reclassifiedCount} values to null.`,
+            "All values matched null vocabulary. No type evidence remains.",
+            { field: fieldName, beforeType: VIZ_DATA_TYPES.Unknown, afterType: VIZ_DATA_TYPES.Unknown, reclassifiedCount: nullVocab.reclassifiedCount },
+          ));
         }
 
         // Step 5: Temporal detection (§6.2) — only if NominalType
@@ -530,6 +537,23 @@ function alignInner(
 }
 
 /**
+ * Merge global and per-field null vocabulary into a flat, deduplicated, sorted array.
+ * Deduplication is case-insensitive; sorting is default lexicographic (JCS).
+ */
+function deduplicateAndSortNullVocab(
+  globalVocab: string[],
+  perFieldVocab: Record<string, string[]>,
+): string[] {
+  const all = [...globalVocab, ...Object.values(perFieldVocab).flat()];
+  const seen = new Map<string, string>();
+  for (const v of all) {
+    const key = v.toLowerCase();
+    if (!seen.has(key)) seen.set(key, v);
+  }
+  return [...seen.values()].sort();
+}
+
+/**
  * Serialize SASConfig to the sas:activeConfig output block (§7).
  * All five fields are always present, even when values equal defaults.
  */
@@ -548,7 +572,10 @@ function serializeConfig(config: SASConfig): ActiveConfigLD {
     "sas:booleanPairs": booleanPairs,
     "sas:consensusThreshold": config.consensusThreshold,
     "sas:minObservationThreshold": config.minObservationThreshold,
-    "sas:nullVocabulary": [...config.globalNullVocabulary].sort(),
+    "sas:nullVocabulary": deduplicateAndSortNullVocab(
+      config.globalNullVocabulary,
+      config.nullVocabulary,
+    ),
     "sas:temporalNamePattern": config.temporalNamePattern.source,
   };
 }

@@ -1,0 +1,1126 @@
+## ============================================================================
+## FNSR Bridge Ontology (FBO) — Version 1.1
+## ============================================================================
+##
+## A thin formal ontology grounding FNSR pipeline vocabulary (viz:, sas:, snp:)
+## in BFO/IAO/CCO/STATO. See FNSR_Bridge_Ontology_Spec_v1.1.md for full spec.
+## See docs/decision-log.md for IRI corrections and design decisions.
+##
+## Namespace:  https://ontology.fnsr.dev/fbo/
+## License:    MIT
+## Author:     Aaron Damiano
+## Date:       2026-03-02
+## ============================================================================
+
+## ---------------------------------------------------------------------------
+## Step 1.1 — Prefixes and Ontology Declaration
+## ---------------------------------------------------------------------------
+
+@prefix fbo:     <https://ontology.fnsr.dev/fbo/> .
+@prefix obo:     <http://purl.obolibrary.org/obo/> .
+@prefix cco:     <https://www.commoncoreontologies.org/> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+<https://ontology.fnsr.dev/fbo/>
+    rdf:type owl:Ontology ;
+    owl:versionIRI <https://ontology.fnsr.dev/fbo/1.1> ;
+    owl:versionInfo "1.1" ;
+    owl:imports <imports/bfo-core.ttl> ,
+                <imports/iao.owl> ,
+                <imports/CommonCoreOntologiesMerged.ttl> ,
+                <imports/stato.owl> ;
+    dcterms:title "FNSR Bridge Ontology"@en ;
+    dcterms:creator "Aaron Damiano" ;
+    dcterms:description "A bridge ontology connecting FNSR pipeline services (SNP, BIBSS, SAS) to BFO, IAO, CCO, and STATO. FBO defines approximately 40-60 classes and 20-30 properties that formalize the relationships between data artifacts, processes, assertions, and configurations produced by the FNSR pipeline."@en ;
+    dcterms:license <https://opensource.org/licenses/MIT> ;
+    rdfs:comment "See FNSR_Bridge_Ontology_Spec_v1.1.md for the governing specification and docs/decision-log.md for IRI corrections discovered during implementation."@en .
+
+
+## ===========================================================================
+## Step 1.2 — Information Content Entity Classes (Spec §5)
+## ===========================================================================
+
+## ---------------------------------------------------------------------------
+## fbo:InferenceAssertion — Intermediate class (DL-001, DL-005)
+## ---------------------------------------------------------------------------
+
+fbo:InferenceAssertion
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000030 ;
+    rdfs:label "Inference Assertion"@en ;
+    skos:definition "An information content entity that is about some portion of reality and that is intended to be evaluated as true or false, supported by evidence from an inference process."@en ;
+    rdfs:comment "Placeholder for IAO's assertion class. Our IAO import (2022-11-07) maps IAO_0000034 to 'time trigger', not 'assertion'. This class captures assertion semantics — a sentence intended to be interpreted as true or false — until the import is corrected. Re-parent under the correct IAO assertion class when a corrected import is available. See decision-log.md DL-001, DL-005."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:RawDataset (Spec §5.1)
+## ---------------------------------------------------------------------------
+
+fbo:RawDataset
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000027 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasFormat ;
+        owl:someValuesFrom fbo:DataFormat
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty obo:IAO_0000136 ;
+        owl:someValuesFrom owl:Thing
+    ] ;
+    rdfs:label "Raw Dataset"@en ;
+    skos:definition "A data item that is a collection of data records in a tabular or structured format, prior to any normalization or processing."@en ;
+    rdfs:comment "Grounds the input to the FNSR pipeline (CSV or JSON file). Disjoint with NormalizedDataset, StructuralSchema, and SemanticSchema."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:NormalizedDataset (Spec §5.2)
+## ---------------------------------------------------------------------------
+
+fbo:NormalizedDataset
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000027 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:isOutputOf ;
+        owl:someValuesFrom fbo:NormalizationProcess
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:derivedFrom ;
+        owl:someValuesFrom fbo:RawDataset
+    ] ;
+    rdfs:label "Normalized Dataset"@en ;
+    skos:definition "A data item that is a collection of data records that has undergone format-level normalization but retains the same record structure as the source raw dataset."@en ;
+    rdfs:comment "Grounds the output of SNP normalization. Normalization includes whitespace trimming, empty-to-null conversion, currency symbol stripping, and date format standardization."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:NormalizationManifest (Spec §5.3)
+## ---------------------------------------------------------------------------
+
+fbo:NormalizationManifest
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000088 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:isOutputOf ;
+        owl:someValuesFrom fbo:NormalizationProcess
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty obo:IAO_0000136 ;
+        owl:someValuesFrom fbo:NormalizationProcess
+    ] ;
+    rdfs:label "Normalization Manifest"@en ;
+    skos:definition "A report that is a structured record of every transformation applied during normalization, including the rule invoked, the data path affected, and the before/after values."@en ;
+    rdfs:comment "Grounds the SNP manifest (the manifest array in SNP output). Every NormalizationManifest is about exactly one NormalizationProcess."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:ManifestEntry (Spec §5.4)
+## ---------------------------------------------------------------------------
+
+fbo:ManifestEntry
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000030 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasRule ;
+        owl:someValuesFrom xsd:string
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasDataPath ;
+        owl:someValuesFrom xsd:string
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty obo:BFO_0000176 ;
+        owl:someValuesFrom fbo:NormalizationManifest
+    ] ;
+    rdfs:label "Manifest Entry"@en ;
+    skos:definition "An information content entity that is an atomic unit within a normalization manifest, recording a single transformation: the rule applied, the field or row affected, and the transformation detail."@en ;
+    rdfs:comment "Grounds individual entries in the SNP manifest array. Uses BFO continuant_part_of (BFO_0000176) for the part-whole relationship to NormalizationManifest."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:StructuralSchema (Spec §5.5)
+## ---------------------------------------------------------------------------
+
+fbo:StructuralSchema
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000027 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:isOutputOf ;
+        owl:someValuesFrom fbo:StructuralInferenceProcess
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty obo:IAO_0000136 ;
+        owl:someValuesFrom [
+            rdf:type owl:Class ;
+            owl:unionOf ( fbo:RawDataset fbo:NormalizedDataset )
+        ]
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasSchemaVersion ;
+        owl:someValuesFrom xsd:string
+    ] ;
+    rdfs:label "Structural Schema"@en ;
+    skos:definition "A data item that describes the structural properties of a dataset — the fields present, their observed primitive types, their occurrence frequencies, and their nesting relationships — without interpreting the semantic meaning of field names or values."@en ;
+    rdfs:comment "Grounds the BIBSS CISM (Canonical Internal Schema Model). A StructuralSchema makes no claims about semantic variable types — it reports only structural types (string, integer, number, boolean, null). Disjoint with SemanticSchema."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:TypeDistribution (Spec §5.6)
+## ---------------------------------------------------------------------------
+
+fbo:TypeDistribution
+    rdf:type owl:Class ;
+    rdfs:subClassOf cco:ont00001070 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty obo:IAO_0000136 ;
+        owl:someValuesFrom fbo:DataField
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasTotalObservations ;
+        owl:someValuesFrom xsd:nonNegativeInteger
+    ] ;
+    rdfs:label "Type Distribution"@en ;
+    skos:definition "A measurement information content entity that records the count of each observed primitive type for a data field across a population of records, prior to type widening or semantic interpretation."@en ;
+    rdfs:comment "Grounds the typeDistribution field on BIBSS SchemaNode. The sum of all type counts in a TypeDistribution (including null) must equal hasTotalObservations. See spec section 16.6 for null accounting. Disjoint with ConsensusScore."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:SemanticSchema (Spec §5.7)
+## ---------------------------------------------------------------------------
+
+fbo:SemanticSchema
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000027 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:isOutputOf ;
+        owl:someValuesFrom fbo:SemanticAlignmentProcess
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:derivedFrom ;
+        owl:someValuesFrom fbo:StructuralSchema
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty obo:IAO_0000136 ;
+        owl:someValuesFrom [
+            rdf:type owl:Class ;
+            owl:unionOf ( fbo:RawDataset fbo:NormalizedDataset )
+        ]
+    ] ;
+    rdfs:label "Semantic Schema"@en ;
+    skos:definition "A data item that describes the semantic properties of a dataset — the variable type assigned to each field, the confidence of each assignment, and the provenance chain connecting the assignment to its structural evidence."@en ;
+    rdfs:comment "Grounds the SAS DatasetSchema (viz:DatasetSchema). Every SemanticSchema is derived from exactly one StructuralSchema and contains at least one EvidencedTypeAssertion. This is an ICE about another ICE (meta-ICE pattern, see spec section 16.5). Disjoint with StructuralSchema."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:EvidencedTypeAssertion (Spec §5.8)
+## ---------------------------------------------------------------------------
+
+fbo:EvidencedTypeAssertion
+    rdf:type owl:Class ;
+    rdfs:subClassOf fbo:InferenceAssertion ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:assertsVariableType ;
+        owl:someValuesFrom fbo:VariableType
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasEvidenceStrength ;
+        owl:someValuesFrom xsd:decimal
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasEvidenceSource ;
+        owl:someValuesFrom fbo:TypeDistribution
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:producedByRule ;
+        owl:someValuesFrom xsd:string
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty obo:IAO_0000136 ;
+        owl:someValuesFrom fbo:DataField
+    ] ;
+    rdfs:label "Evidenced Type Assertion"@en ;
+    skos:definition "An inference assertion that a data field has a specific statistical variable type, supported by quantified structural evidence and traceable to a specific inference process and configuration."@en ;
+    rdfs:comment "Grounds each viz:DataField type assertion in SAS output. This is the most conceptually significant class FBO introduces — it formalizes the idea that SAS type assignments are not arbitrary labels but assertions backed by statistical evidence (the TypeDistribution) with a quantified confidence (the consensus score). Each assertion assigns exactly one variable type, has exactly one evidence strength in [0.0, 1.0], and traces to exactly one TypeDistribution."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:DataField (Spec §5.10)
+## ---------------------------------------------------------------------------
+
+fbo:DataField
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000030 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasFieldName ;
+        owl:someValuesFrom xsd:string
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty obo:BFO_0000176 ;
+        owl:someValuesFrom [
+            rdf:type owl:Class ;
+            owl:unionOf ( fbo:StructuralSchema fbo:SemanticSchema )
+        ]
+    ] ;
+    rdfs:label "Data Field"@en ;
+    skos:definition "An information content entity that denotes a named column or property within a dataset."@en ;
+    rdfs:comment "Grounds viz:DataField in SAS output and SchemaEdge in BIBSS CISM. DataField individuals exist at both the structural phase (within a CISM) and the semantic phase (within a DatasetSchema). Cross-phase identity is established via fbo:correspondsTo, not by matching field name strings."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:AlignmentConfiguration (Spec §5.11)
+## ---------------------------------------------------------------------------
+
+fbo:AlignmentConfiguration
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000033 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasConsensusThreshold ;
+        owl:someValuesFrom xsd:decimal
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasMinObservationThreshold ;
+        owl:someValuesFrom xsd:nonNegativeInteger
+    ] ;
+    rdfs:label "Alignment Configuration"@en ;
+    skos:definition "A directive information entity that specifies the parameters governing a semantic alignment process — consensus thresholds, observation minimums, temporal patterns, null vocabularies, and boolean field designations."@en ;
+    rdfs:comment "Grounds sas:AlignmentConfiguration (sas:activeConfig in SAS output). A directive information entity prescribes how a process should be carried out; it does not perform alignment itself."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:DataFormat (Spec §5.12)
+## ---------------------------------------------------------------------------
+
+fbo:DataFormat
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000030 ;
+    rdfs:label "Data Format"@en ;
+    skos:definition "An information content entity that denotes the syntactic format of a dataset."@en ;
+    rdfs:comment "Named individuals: fbo:CSV, fbo:JSON."@en .
+
+
+## ===========================================================================
+## Step 1.3 — Variable Type Subclasses (Spec §5.9)
+## ===========================================================================
+
+## ---------------------------------------------------------------------------
+## fbo:VariableType — Bridge to STATO
+## ---------------------------------------------------------------------------
+
+fbo:VariableType
+    rdf:type owl:Class ;
+    owl:equivalentClass obo:STATO_0000258 ;
+    rdfs:label "Variable Type"@en ;
+    skos:definition "A data item that denotes the kind of statistical variable a data field represents."@en ;
+    rdfs:comment "Equivalent to STATO:0000258 (variable). FBO defines five named subclasses representing the FNSR pipeline's variable type vocabulary."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:QuantitativeVariable
+## ---------------------------------------------------------------------------
+
+fbo:QuantitativeVariable
+    rdf:type owl:Class ;
+    rdfs:subClassOf fbo:VariableType ;
+    rdfs:subClassOf obo:STATO_0000251 ;
+    rdfs:label "Quantitative Variable"@en ;
+    skos:definition "A variable type that denotes a data field whose values represent continuous numeric quantities."@en ;
+    rdfs:comment "Grounds viz:QuantitativeType. Subclass of STATO:0000251 (continuous variable) rather than owl:equivalentClass because SAS does not distinguish ratio from interval scale. Includes both integer and float numeric data."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:NominalVariable
+## ---------------------------------------------------------------------------
+
+fbo:NominalVariable
+    rdf:type owl:Class ;
+    owl:equivalentClass obo:STATO_0000252 ;
+    rdfs:label "Nominal Variable"@en ;
+    skos:definition "A variable type that denotes a data field whose values represent unordered categories."@en ;
+    rdfs:comment "Grounds viz:NominalType. Direct equivalence with STATO:0000252 (categorical variable)."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:TemporalVariable
+## ---------------------------------------------------------------------------
+
+fbo:TemporalVariable
+    rdf:type owl:Class ;
+    rdfs:subClassOf fbo:VariableType ;
+    rdfs:label "Temporal Variable"@en ;
+    skos:definition "A variable type that denotes a data field whose values represent time."@en ;
+    rdfs:comment "Grounds viz:TemporalType. FBO does not place this under QuantitativeVariable (STATO continuous) or NominalVariable (STATO categorical) because temporal data can be either: ISO 8601 timestamps are continuous points on a timeline, while fiscal quarters or date buckets are ordinal categories. FBO remains agnostic on this distinction. STATO does not define a temporal variable type; this is FBO's primary extension. See spec section 16.1 and decision-log.md."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:BooleanVariable
+## ---------------------------------------------------------------------------
+
+fbo:BooleanVariable
+    rdf:type owl:Class ;
+    owl:equivalentClass obo:STATO_0000090 ;
+    rdfs:label "Boolean Variable"@en ;
+    skos:definition "A variable type that denotes a data field whose values represent exactly two mutually exclusive categories."@en ;
+    rdfs:comment "Grounds viz:BooleanType. Equivalent to STATO:0000090 (dichotomous variable) — a categorical variable with exactly 2 categories. NOTE: The spec references STATO:0000255 but that IRI is 'between group comparison objective' in our STATO import. The correct IRI is STATO:0000090. See decision-log.md DL-002. Via STATO hierarchy, BooleanVariable is inferred as a subclass of categorical variable (STATO:0000252)."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:IndeterminateVariable
+## ---------------------------------------------------------------------------
+
+fbo:IndeterminateVariable
+    rdf:type owl:Class ;
+    rdfs:subClassOf fbo:VariableType ;
+    rdfs:label "Indeterminate Variable"@en ;
+    skos:definition "A variable type that denotes a data field for which structural evidence was insufficient to determine a specific statistical variable type."@en ;
+    rdfs:comment "Grounds viz:UnknownType. Not a 'missing' type — it is a positive assertion that the evidence does not support any specific type. Disjoint with all four typed siblings. See spec section 16.3."@en .
+
+
+## ===========================================================================
+## Step 1.4 — Process Classes (Spec §6)
+## ===========================================================================
+
+## ---------------------------------------------------------------------------
+## fbo:FNSRProcess (Spec §6.1)
+## ---------------------------------------------------------------------------
+
+fbo:FNSRProcess
+    rdf:type owl:Class ;
+    rdfs:subClassOf cco:ont00000366 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty obo:BFO_0000057 ;
+        owl:someValuesFrom obo:IAO_0000030
+    ] ;
+    rdfs:label "FNSR Process"@en ;
+    skos:definition "An act of information processing in which information content entities are transformed according to a specification."@en ;
+    rdfs:comment "Abstract parent class for all FNSR pipeline operations. Subclass of CCO Act of Information Processing (cco:ont00000366). All FNSR processes have at least one ICE as participant."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:NormalizationProcess (Spec §6.2)
+## ---------------------------------------------------------------------------
+
+fbo:NormalizationProcess
+    rdf:type owl:Class ;
+    rdfs:subClassOf fbo:FNSRProcess ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001921 ;
+        owl:someValuesFrom fbo:RawDataset
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001986 ;
+        owl:someValuesFrom fbo:NormalizedDataset
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001986 ;
+        owl:someValuesFrom fbo:NormalizationManifest
+    ] ;
+    rdfs:label "Normalization Process"@en ;
+    skos:definition "An FNSR process in which a raw dataset is transformed into a normalized dataset by applying format-level cleaning rules."@en ;
+    rdfs:comment "Grounds SNP normalize() invocation. Cleaning rules include whitespace trimming, empty-to-null conversion, currency stripping, and date format standardization. Produces both a cleaned dataset and a manifest recording every transformation."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:StructuralInferenceProcess (Spec §6.3)
+## ---------------------------------------------------------------------------
+
+fbo:StructuralInferenceProcess
+    rdf:type owl:Class ;
+    rdfs:subClassOf fbo:FNSRProcess ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001921 ;
+        owl:someValuesFrom [
+            rdf:type owl:Class ;
+            owl:unionOf ( fbo:RawDataset fbo:NormalizedDataset )
+        ]
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001986 ;
+        owl:someValuesFrom fbo:StructuralSchema
+    ] ;
+    rdfs:label "Structural Inference Process"@en ;
+    skos:definition "An FNSR process in which a dataset is analyzed to produce a structural schema describing the observed types, nesting, optionality, and frequency of fields."@en ;
+    rdfs:comment "Grounds BIBSS infer() invocation. No semantic interpretation is performed — only structural type observation."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:SemanticAlignmentProcess (Spec §6.4)
+## ---------------------------------------------------------------------------
+
+fbo:SemanticAlignmentProcess
+    rdf:type owl:Class ;
+    rdfs:subClassOf fbo:FNSRProcess ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001921 ;
+        owl:someValuesFrom fbo:StructuralSchema
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001921 ;
+        owl:someValuesFrom fbo:AlignmentConfiguration
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001986 ;
+        owl:someValuesFrom fbo:SemanticSchema
+    ] ;
+    rdfs:label "Semantic Alignment Process"@en ;
+    skos:definition "An FNSR process in which a structural schema is transformed into a semantic schema by applying rule cascades governed by an alignment configuration."@en ;
+    rdfs:comment "Grounds SAS align() invocation. Rule cascades include consensus promotion, temporal detection, boolean pair detection, and null vocabulary reclassification. The NormalizationManifest is an optional input (absent in standalone mode)."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:ConsensusComputation (Spec §6.5)
+## ---------------------------------------------------------------------------
+
+fbo:ConsensusComputation
+    rdf:type owl:Class ;
+    rdfs:subClassOf cco:ont00000345 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001921 ;
+        owl:someValuesFrom fbo:TypeDistribution
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001986 ;
+        owl:someValuesFrom fbo:EvidencedTypeAssertion
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:governedBy ;
+        owl:someValuesFrom fbo:AlignmentConfiguration
+    ] ;
+    rdfs:label "Consensus Computation"@en ;
+    skos:definition "An act of measurement in which the type distribution of a data field is evaluated against a consensus threshold to determine whether a dominant type exists with sufficient confidence."@en ;
+    rdfs:comment "Grounds SAS consensus promotion. Produces a consensus score and, if threshold is met, a type assignment."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:ConceptResolutionProcess (Spec §6.6)
+## ---------------------------------------------------------------------------
+
+fbo:ConceptResolutionProcess
+    rdf:type owl:Class ;
+    rdfs:subClassOf fbo:FNSRProcess ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001921 ;
+        owl:someValuesFrom fbo:DataField
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001986 ;
+        owl:someValuesFrom fbo:EvidencedTypeAssertion
+    ] ;
+    rdfs:label "Concept Resolution Process"@en ;
+    skos:definition "An FNSR process in which a field name is resolved against a concept knowledge base to find semantic enrichment information."@en ;
+    rdfs:comment "Grounds SAS Fandaws enrichment (future Phase 1v2). Mediated by the Fandaws service."@en .
+
+
+## ===========================================================================
+## Step 1.5 — Gap-Fill Classes (SAS Term Registry)
+## ===========================================================================
+
+## ---------------------------------------------------------------------------
+## fbo:BooleanPairMapping
+## ---------------------------------------------------------------------------
+
+fbo:BooleanPairMapping
+    rdf:type owl:Class ;
+    rdfs:subClassOf obo:IAO_0000033 ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:forFieldName ;
+        owl:someValuesFrom xsd:string
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasTrueValue ;
+        owl:someValuesFrom xsd:string
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasFalseValue ;
+        owl:someValuesFrom xsd:string
+    ] ;
+    rdfs:label "Boolean Pair Mapping"@en ;
+    skos:definition "A directive information entity that specifies a field name and its corresponding true/false value pair for boolean type detection."@en ;
+    rdfs:comment "Grounds individual entries in the sas:booleanPairs array within SAS AlignmentConfiguration. Each mapping designates a specific field and its true/false string values (e.g., 'Yes'/'No', 'T'/'F')."@en .
+
+
+## ===========================================================================
+## Step 1.6 — Object Properties (Spec §7.1)
+## ===========================================================================
+
+## ---------------------------------------------------------------------------
+## fbo:derivedFrom
+## ---------------------------------------------------------------------------
+
+fbo:derivedFrom
+    rdf:type owl:ObjectProperty , owl:TransitiveProperty ;
+    rdfs:domain obo:IAO_0000030 ;
+    rdfs:range obo:IAO_0000030 ;
+    rdfs:label "derived from"@en ;
+    skos:definition "Relates an information content entity to another information content entity from which it was produced through some transformation process."@en ;
+    rdfs:comment "Transitive. Enables provenance chain traversal: SemanticSchema derivedFrom StructuralSchema derivedFrom NormalizedDataset derivedFrom RawDataset. Transitivity allows CQ-04 to infer the full chain without enumerating intermediates. See spec section 16.4."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:correspondsTo
+## ---------------------------------------------------------------------------
+
+fbo:correspondsTo
+    rdf:type owl:ObjectProperty ;
+    rdfs:domain fbo:DataField ;
+    rdfs:range fbo:DataField ;
+    rdfs:label "corresponds to"@en ;
+    skos:definition "Relates a semantic-phase data field to the structural-phase data field it was derived from, establishing cross-phase field identity via graph structure."@en ;
+    rdfs:comment "Enables traversal from a semantic assertion back to the structural TypeDistribution without string matching on fbo:hasFieldName. See spec changelog F-002. Not modeled with a class-level cardinality restriction because structural-phase DataField individuals have no correspondsTo link — the constraint is validated procedurally via CQ-13."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:isOutputOf
+## ---------------------------------------------------------------------------
+
+fbo:isOutputOf
+    rdf:type owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:subPropertyOf cco:ont00001816 ;
+    rdfs:domain obo:IAO_0000030 ;
+    rdfs:range fbo:FNSRProcess ;
+    rdfs:label "is output of"@en ;
+    skos:definition "Relates an information content entity to the FNSR process that produced it."@en ;
+    rdfs:comment "Sub-property of CCO 'is output of' (cco:ont00001816), which is the inverse of cco:ont00001986 (has output) and a sub-property of BFO 'participates in at some time' (obo:BFO_0000056). This grounds fbo:isOutputOf in the CCO/BFO property hierarchy."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:isInputTo
+## ---------------------------------------------------------------------------
+
+fbo:isInputTo
+    rdf:type owl:ObjectProperty ;
+    rdfs:subPropertyOf cco:ont00001841 ;
+    rdfs:domain obo:IAO_0000030 ;
+    rdfs:range fbo:FNSRProcess ;
+    rdfs:label "is input to"@en ;
+    skos:definition "Relates an information content entity to the FNSR process that consumes it."@en ;
+    rdfs:comment "Sub-property of CCO 'is input of' (cco:ont00001841), which is the inverse of cco:ont00001921 (has input) and a sub-property of BFO 'participates in at some time' (obo:BFO_0000056). This grounds fbo:isInputTo in the CCO/BFO property hierarchy."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:assertsVariableType
+## ---------------------------------------------------------------------------
+
+fbo:assertsVariableType
+    rdf:type owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain fbo:EvidencedTypeAssertion ;
+    rdfs:range fbo:VariableType ;
+    rdfs:label "asserts variable type"@en ;
+    skos:definition "Relates an evidenced type assertion to the specific variable type it assigns to a data field."@en ;
+    rdfs:comment "Functional: each assertion assigns exactly one variable type. Grounds viz:hasDataType."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:hasEvidenceSource
+## ---------------------------------------------------------------------------
+
+fbo:hasEvidenceSource
+    rdf:type owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain fbo:EvidencedTypeAssertion ;
+    rdfs:range fbo:TypeDistribution ;
+    rdfs:label "has evidence source"@en ;
+    skos:definition "Relates an evidenced type assertion to the type distribution that provides its evidential basis."@en ;
+    rdfs:comment "Functional: each assertion traces to exactly one TypeDistribution."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:governedBy
+## ---------------------------------------------------------------------------
+
+fbo:governedBy
+    rdf:type owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:range fbo:AlignmentConfiguration ;
+    rdfs:label "governed by"@en ;
+    skos:definition "Relates a process to the alignment configuration that prescribes its parameters."@en ;
+    rdfs:comment "Functional. No global rdfs:domain declared — domain is enforced locally via class-level restrictions on fbo:SemanticAlignmentProcess and fbo:ConsensusComputation. A global domain of fbo:FNSRProcess would cause domain poisoning: the reasoner would coerce fbo:ConsensusComputation (an Act of Measuring, not an FNSRProcess) into fbo:FNSRProcess via OWL's open-world domain inference rule. See decision log DL-009."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:optionallyConsults
+## ---------------------------------------------------------------------------
+
+fbo:optionallyConsults
+    rdf:type owl:ObjectProperty ;
+    rdfs:domain fbo:SemanticAlignmentProcess ;
+    rdfs:range fbo:NormalizationManifest ;
+    rdfs:label "optionally consults"@en ;
+    skos:definition "Relates a semantic alignment process to a normalization manifest that it may use as supplementary provenance input."@en ;
+    rdfs:comment "Not mandatory — standalone mode has no manifest. The manifest provides provenance context (e.g., which fields were currency-stripped) that can influence type assignment."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:hasFormat
+## ---------------------------------------------------------------------------
+
+fbo:hasFormat
+    rdf:type owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain fbo:RawDataset ;
+    rdfs:range fbo:DataFormat ;
+    rdfs:label "has format"@en ;
+    skos:definition "Relates a raw dataset to its syntactic format."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:hasField
+## ---------------------------------------------------------------------------
+
+fbo:hasField
+    rdf:type owl:ObjectProperty ;
+    rdfs:range fbo:DataField ;
+    rdfs:label "has field"@en ;
+    skos:definition "Relates a schema to one of its constituent data fields."@en ;
+    rdfs:comment "Domain is the union of StructuralSchema and SemanticSchema. Grounds viz:hasField."@en .
+
+
+## ---------------------------------------------------------------------------
+## fbo:hasBooleanPairMapping
+## ---------------------------------------------------------------------------
+
+fbo:hasBooleanPairMapping
+    rdf:type owl:ObjectProperty ;
+    rdfs:domain fbo:AlignmentConfiguration ;
+    rdfs:range fbo:BooleanPairMapping ;
+    rdfs:label "has boolean pair mapping"@en ;
+    skos:definition "Relates an alignment configuration to a boolean pair mapping that specifies field-level true/false value pairs."@en ;
+    rdfs:comment "Multi-valued. Grounds sas:booleanPairs array. May be empty (no boolean pair mappings configured)."@en .
+
+
+## ===========================================================================
+## Step 1.7 — Data Properties (Spec §7.2 + Registry Gaps)
+## ===========================================================================
+
+## --- From spec §7.2 ---
+
+fbo:hasFieldName
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:DataField ;
+    rdfs:range xsd:string ;
+    rdfs:label "has field name"@en ;
+    skos:definition "The original column or property name of a data field."@en ;
+    rdfs:comment "Grounds viz:fieldName."@en .
+
+fbo:hasEvidenceStrength
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:EvidencedTypeAssertion ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "has evidence strength"@en ;
+    skos:definition "The degree to which observed evidence supports a type assertion, expressed as a decimal in [0.0, 1.0]."@en ;
+    rdfs:comment "Grounds viz:consensusScore. Computed as consensusNumerator / consensusDenominator. Design note: this is a shortcut — the full CCO measurement pattern would route through an Act of Measuring (cco:ont00000345) producing a Measurement ICE (cco:ont00001070) with a value specification. The shortcut is justified because FBO's ConsensusComputation already subclasses Act of Measuring and the TypeDistribution subclasses Measurement ICE; the scalar value is attached directly here for SPARQL query simplicity (CQ-02, CQ-08)."@en .
+
+fbo:hasConsensusNumerator
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:EvidencedTypeAssertion ;
+    rdfs:range xsd:nonNegativeInteger ;
+    rdfs:label "has consensus numerator"@en ;
+    skos:definition "The count of non-null observations matching the dominant structural type."@en ;
+    rdfs:comment "Grounds sas:consensusNumerator. See fbo:hasEvidenceStrength for the measurement shortcut rationale."@en .
+
+fbo:hasConsensusDenominator
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:EvidencedTypeAssertion ;
+    rdfs:range xsd:nonNegativeInteger ;
+    rdfs:label "has consensus denominator"@en ;
+    skos:definition "The count of non-null observations used as the basis for consensus computation."@en ;
+    rdfs:comment "Grounds sas:consensusDenominator. Excludes null observations. See fbo:hasEvidenceStrength for the measurement shortcut rationale."@en .
+
+fbo:hasTotalObservations
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:TypeDistribution ;
+    rdfs:range xsd:nonNegativeInteger ;
+    rdfs:label "has total observations"@en ;
+    skos:definition "The total count of all observations in a type distribution, including null."@en ;
+    rdfs:comment "Must equal the sum of all type counts in the distribution. Includes null counts — see spec section 16.6."@en .
+
+fbo:hasSchemaVersion
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:StructuralSchema ;
+    rdfs:range xsd:string ;
+    rdfs:label "has schema version"@en ;
+    skos:definition "The version identifier of the structural schema format."@en ;
+    rdfs:comment "Grounds the CISM version string."@en .
+
+fbo:hasRawInputHash
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:SemanticSchema ;
+    rdfs:range xsd:string ;
+    rdfs:label "has raw input hash"@en ;
+    skos:definition "A cryptographic hash of the raw input dataset, providing content-addressable identity."@en ;
+    rdfs:comment "Grounds viz:rawInputHash. Typically SHA-256."@en .
+
+fbo:producedByRule
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:EvidencedTypeAssertion ;
+    rdfs:range xsd:string ;
+    rdfs:label "produced by rule"@en ;
+    skos:definition "The identifier of the alignment rule that produced a type assertion."@en ;
+    rdfs:comment "Grounds sas:alignmentRule. Known values (8): 'consensus-promotion', 'temporal-detection', 'temporal-detection-snp-evidence', 'boolean-pair-configured', 'null-vocabulary-configured', 'structural-passthrough', 'unknown-assignment', 'cism-validation-failed'. Note: both 'unknown-assignment' and 'cism-validation-failed' produce fbo:IndeterminateVariable — CQ-12 must account for both paths."@en .
+
+fbo:hasStructuralType
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:EvidencedTypeAssertion ;
+    rdfs:range xsd:string ;
+    rdfs:label "has structural type"@en ;
+    skos:definition "The primitive structural type observed by BIBSS before semantic interpretation."@en ;
+    rdfs:comment "Grounds sas:structuralType. Known values: 'string', 'integer', 'number', 'boolean', 'null'. This is a denormalized convenience — the authoritative structural provenance path is through fbo:correspondsTo."@en .
+
+fbo:hasConsensusThreshold
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:AlignmentConfiguration ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "has consensus threshold"@en ;
+    skos:definition "The minimum evidence strength required for a type assertion to be considered valid."@en ;
+    rdfs:comment "Grounds sas:consensusThreshold. Range: (0.0, 1.0]."@en .
+
+fbo:hasMinObservationThreshold
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:AlignmentConfiguration ;
+    rdfs:range xsd:nonNegativeInteger ;
+    rdfs:label "has minimum observation threshold"@en ;
+    skos:definition "The minimum number of non-null observations required before consensus computation is attempted."@en ;
+    rdfs:comment "Grounds sas:minObservationThreshold."@en .
+
+fbo:hasTotalRows
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:SemanticSchema ;
+    rdfs:range xsd:nonNegativeInteger ;
+    rdfs:label "has total rows"@en ;
+    skos:definition "The total number of records in the dataset described by a semantic schema."@en ;
+    rdfs:comment "Grounds viz:totalRows."@en .
+
+fbo:hasRowsInspected
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:SemanticSchema ;
+    rdfs:range xsd:nonNegativeInteger ;
+    rdfs:label "has rows inspected"@en ;
+    skos:definition "The number of records actually profiled when sampling was applied."@en ;
+    rdfs:comment "Grounds viz:rowsInspected. Conditional — only present when CISM sampling.applied is true."@en .
+
+fbo:hasRule
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:ManifestEntry ;
+    rdfs:range xsd:string ;
+    rdfs:label "has rule"@en ;
+    skos:definition "The identifier of the normalization rule applied in a manifest entry."@en ;
+    rdfs:comment "Required by CQ-09. Example values: 'empty-to-null', 'currency-strip', 'date-format'."@en .
+
+fbo:hasDataPath
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:ManifestEntry ;
+    rdfs:range xsd:string ;
+    rdfs:label "has data path"@en ;
+    skos:definition "The field or row path affected by a normalization transformation."@en ;
+    rdfs:comment "Required by CQ-09. Identifies which field the manifest entry pertains to."@en .
+
+## --- From SAS Term Registry gap-fills ---
+
+fbo:hasNullVocabulary
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:AlignmentConfiguration ;
+    rdfs:range xsd:string ;
+    rdfs:label "has null vocabulary"@en ;
+    skos:definition "A string value recognized as representing null in the alignment configuration."@en ;
+    rdfs:comment "Grounds sas:nullVocabulary. Multi-valued — an AlignmentConfiguration may have multiple null vocabulary entries."@en .
+
+fbo:hasTemporalNamePattern
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:AlignmentConfiguration ;
+    rdfs:range xsd:string ;
+    rdfs:label "has temporal name pattern"@en ;
+    skos:definition "A regular expression pattern used to detect temporal field names during alignment."@en ;
+    rdfs:comment "Grounds sas:temporalNamePattern."@en .
+
+fbo:hasNumericPrecision
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:DataField ;
+    rdfs:range xsd:string ;
+    rdfs:label "has numeric precision"@en ;
+    skos:definition "The numeric precision classification of a quantitative data field."@en ;
+    rdfs:comment "Grounds viz:numericPrecision. Values: 'integer' or 'float'. CONDITIONAL: only appears when the field's type is QuantitativeType. No class-level restriction is declared — presence is governed by instance data."@en .
+
+fbo:forFieldName
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:BooleanPairMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "for field name"@en ;
+    skos:definition "The column name that a boolean pair mapping applies to."@en ;
+    rdfs:comment "Grounds sas:fieldName within sas:booleanPairs entries."@en .
+
+fbo:hasTrueValue
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:BooleanPairMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "has true value"@en ;
+    skos:definition "The string value representing 'true' in a boolean pair mapping."@en ;
+    rdfs:comment "Grounds sas:trueValue. Example: 'Yes', 'T', '1'."@en .
+
+fbo:hasFalseValue
+    rdf:type owl:DatatypeProperty ;
+    rdfs:domain fbo:BooleanPairMapping ;
+    rdfs:range xsd:string ;
+    rdfs:label "has false value"@en ;
+    skos:definition "The string value representing 'false' in a boolean pair mapping."@en ;
+    rdfs:comment "Grounds sas:falseValue. Example: 'No', 'F', '0'."@en .
+
+## --- Annotation Properties (Registry Group C) ---
+## Design decision: These 5 properties are typed as owl:AnnotationProperty rather
+## than owl:DatatypeProperty. Rationale: (1) None participate in any of the 16
+## competency questions (CQ-01 through CQ-14, CQ-05b, CQ-07b) — they carry
+## pipeline metadata that is never the target of a class restriction or SPARQL
+## filter in the spec. (2) The spec §5, §7 treat them as metadata annotations on
+## individuals, not as structurally constraining properties. (3) As annotation
+## properties, they do not increase reasoner workload or interact with OWL 2 DL
+## restrictions. If future CQs or axioms require reasoning over these values,
+## they should be promoted to owl:DatatypeProperty with appropriate domain/range.
+## See decision log DL-006.
+
+fbo:wasNormalized
+    rdf:type owl:AnnotationProperty ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "was normalized"@en ;
+    skos:definition "Indicates whether a data field underwent normalization via the SNP manifest."@en ;
+    rdfs:comment "Grounds viz:wasNormalized. Conditional — only present when SNP manifest input was provided. Always true when present."@en .
+
+fbo:wasPercentage
+    rdf:type owl:AnnotationProperty ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "was percentage"@en ;
+    skos:definition "Indicates whether a data field's values were originally formatted as percentages and were stripped during normalization."@en ;
+    rdfs:comment "Grounds viz:wasPercentage. Conditional — only present when SNP manifest records percentage stripping for a field."@en .
+
+fbo:fandawsConsulted
+    rdf:type owl:AnnotationProperty ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "Fandaws consulted"@en ;
+    skos:definition "Indicates whether the Fandaws concept resolution service was consulted during the production of a type assertion."@en ;
+    rdfs:comment "Grounds sas:fandawsConsulted. Always false in Phase 1. Applied as annotation on fbo:EvidencedTypeAssertion individuals."@en .
+
+fbo:hasAlignmentMode
+    rdf:type owl:AnnotationProperty ;
+    rdfs:range xsd:string ;
+    rdfs:label "has alignment mode"@en ;
+    skos:definition "Records the operational mode of a semantic alignment process."@en ;
+    rdfs:comment "Grounds sas:alignmentMode. Known values: 'standalone', 'enriched'. Applied as annotation on fbo:SemanticAlignmentProcess individuals."@en .
+
+fbo:fandawsAvailable
+    rdf:type owl:AnnotationProperty ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "Fandaws available"@en ;
+    skos:definition "Indicates whether the Fandaws concept resolution service was available at the time of semantic alignment."@en ;
+    rdfs:comment "Grounds sas:fandawsAvailable. Always false in Phase 1. Applied as annotation on fbo:SemanticAlignmentProcess individuals."@en .
+
+
+## ===========================================================================
+## Step 1.8 — Named Individuals
+## ===========================================================================
+
+fbo:CSV
+    rdf:type owl:NamedIndividual , fbo:DataFormat ;
+    rdfs:label "CSV"@en ;
+    skos:definition "The comma-separated values data format."@en .
+
+fbo:JSON
+    rdf:type owl:NamedIndividual , fbo:DataFormat ;
+    rdfs:label "JSON"@en ;
+    skos:definition "The JavaScript Object Notation data format."@en .
+
+
+## ===========================================================================
+## Step 1.9 — Disjointness Axioms (Spec §8.1)
+## ===========================================================================
+
+## Schema/dataset disjointness
+[]  rdf:type owl:AllDisjointClasses ;
+    owl:members (
+        fbo:RawDataset
+        fbo:NormalizedDataset
+        fbo:StructuralSchema
+        fbo:SemanticSchema
+    ) .
+
+## Variable type disjointness (critical — see spec changelog F-001)
+[]  rdf:type owl:AllDisjointClasses ;
+    owl:members (
+        fbo:QuantitativeVariable
+        fbo:NominalVariable
+        fbo:TemporalVariable
+        fbo:BooleanVariable
+        fbo:IndeterminateVariable
+    ) .
+
+## Process disjointness
+[]  rdf:type owl:AllDisjointClasses ;
+    owl:members (
+        fbo:NormalizationProcess
+        fbo:StructuralInferenceProcess
+        fbo:SemanticAlignmentProcess
+    ) .
+
+## DataFormat individual distinctness
+[]  rdf:type owl:AllDifferent ;
+    owl:distinctMembers (
+        fbo:CSV
+        fbo:JSON
+    ) .
+
+
+## ===========================================================================
+## Step 1.10 — Cardinality Constraints (Spec §8.2)
+## ===========================================================================
+
+## EvidencedTypeAssertion: exactly 1 of each key property
+fbo:EvidencedTypeAssertion
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:assertsVariableType ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass fbo:VariableType
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasEvidenceStrength ;
+        owl:cardinality "1"^^xsd:nonNegativeInteger
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasEvidenceSource ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass fbo:TypeDistribution
+    ] .
+
+## NormalizationProcess: exactly 1 RawDataset input, exactly 1 NormalizedDataset + 1 Manifest output
+fbo:NormalizationProcess
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001921 ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass fbo:RawDataset
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001986 ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass fbo:NormalizedDataset
+    ] ;
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001986 ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass fbo:NormalizationManifest
+    ] .
+
+## StructuralInferenceProcess: exactly 1 StructuralSchema output
+fbo:StructuralInferenceProcess
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001986 ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass fbo:StructuralSchema
+    ] .
+
+## SemanticAlignmentProcess: exactly 1 SemanticSchema output
+fbo:SemanticAlignmentProcess
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty cco:ont00001986 ;
+        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+        owl:onClass fbo:SemanticSchema
+    ] .
+
+## AlignmentConfiguration: exactly 1 consensus threshold
+fbo:AlignmentConfiguration
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:hasConsensusThreshold ;
+        owl:cardinality "1"^^xsd:nonNegativeInteger
+    ] .
+
+
+## ===========================================================================
+## Step 1.11 — Provenance Chain Axiom (Spec §8.4, MODIFIED per DL-004)
+## ===========================================================================
+## Weakened to disjunction to support both full-pipeline and standalone modes.
+## See decision-log.md DL-004.
+
+fbo:SemanticSchema
+    rdfs:subClassOf [
+        rdf:type owl:Restriction ;
+        owl:onProperty fbo:derivedFrom ;
+        owl:someValuesFrom [
+            rdf:type owl:Class ;
+            owl:intersectionOf (
+                fbo:StructuralSchema
+                [
+                    rdf:type owl:Restriction ;
+                    owl:onProperty fbo:derivedFrom ;
+                    owl:someValuesFrom [
+                        rdf:type owl:Class ;
+                        owl:unionOf (
+                            [
+                                rdf:type owl:Class ;
+                                owl:intersectionOf (
+                                    fbo:NormalizedDataset
+                                    [
+                                        rdf:type owl:Restriction ;
+                                        owl:onProperty fbo:derivedFrom ;
+                                        owl:someValuesFrom fbo:RawDataset
+                                    ]
+                                )
+                            ]
+                            fbo:RawDataset
+                        )
+                    ]
+                ]
+            )
+        ]
+    ] .
+
+
+## ===========================================================================
+## End of FBO TBox — Version 1.1
+## ===========================================================================

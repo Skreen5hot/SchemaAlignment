@@ -1,10 +1,11 @@
 /**
  * Output Structure and Invariants Tests
  *
- * 19 test cases validating JSON-LD output structure, field IRI normalization,
- * JCS canonicalization, error handling, and property-based invariants.
+ * 30 test cases validating JSON-LD output structure, field IRI normalization,
+ * JCS canonicalization, error handling, property-based invariants, and
+ * SAS v2.1 addendum tests (T-15 through T-18, T-21, P-10, P-11).
  *
- * Task 1.17 from ROADMAP.md.
+ * Tasks 1.17 and 1.21 from ROADMAP.md.
  */
 
 import { strictEqual, ok } from "node:assert";
@@ -522,6 +523,193 @@ try {
   passed++;
 } catch (e) {
   console.error("  \u2717 FAIL: sas:activeConfig JCS ordering");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 24 (T-15): activeConfig presence — default config
+// Verify existing tests 20-22 cover exact addendum requirements:
+// sas:booleanPairs: [], sas:nullVocabulary: []
+// ---------------------------------------------------------------------------
+try {
+  const cfg = multiResult.schema!["sas:activeConfig"];
+  strictEqual(cfg["sas:booleanPairs"].length, 0, "booleanPairs defaults to empty array");
+  strictEqual(cfg["sas:nullVocabulary"].length, 0, "nullVocabulary defaults to empty array");
+  console.log("  \u2713 PASS: T-15 activeConfig defaults \u2192 booleanPairs=[], nullVocabulary=[]");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: T-15 activeConfig defaults");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 25 (T-16): activeConfig presence — custom config with merged nullVocab
+// ---------------------------------------------------------------------------
+try {
+  const cism = makeCISM([
+    { name: "active", node: prim("string", 100, { string: 100 }) },
+    { name: "status", node: prim("string", 100, { string: 100 }) },
+  ]);
+  const result = align(cism, HASH, {
+    consensusThreshold: 0.8,
+    booleanFields: { active: ["Y", "N"] },
+    nullVocabulary: { status: ["N/A"] },
+    globalNullVocabulary: ["-"],
+  });
+  const cfg = result.schema!["sas:activeConfig"];
+  strictEqual(cfg["sas:consensusThreshold"], 0.8, "threshold must be 0.8");
+  // booleanPairs: single entry with JCS key order
+  strictEqual(cfg["sas:booleanPairs"].length, 1, "one boolean pair");
+  const bp = cfg["sas:booleanPairs"][0] as Record<string, string>;
+  strictEqual(bp["sas:fieldName"], "active");
+  strictEqual(bp["sas:trueValue"], "Y");
+  strictEqual(bp["sas:falseValue"], "N");
+  // nullVocabulary: flattened, deduplicated, sorted
+  const nv = cfg["sas:nullVocabulary"];
+  strictEqual(nv.length, 2, "two null vocab entries");
+  strictEqual(nv[0], "-");
+  strictEqual(nv[1], "N/A");
+  console.log("  \u2713 PASS: T-16 activeConfig custom \u2192 threshold=0.8, booleanPairs, nullVocab merged");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: T-16 activeConfig custom config");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 26 (T-17): booleanPairs serialization ordering
+// ---------------------------------------------------------------------------
+try {
+  const cism = makeCISM([
+    { name: "a_field", node: prim("string", 100, { string: 100 }) },
+    { name: "z_field", node: prim("string", 100, { string: 100 }) },
+  ]);
+  const result = align(cism, HASH, {
+    booleanFields: { z_field: ["T", "F"], a_field: ["1", "0"] },
+  });
+  const cfg = result.schema!["sas:activeConfig"];
+  const pairs = cfg["sas:booleanPairs"];
+  strictEqual(pairs.length, 2, "two boolean pairs");
+  // Sorted by sas:fieldName
+  strictEqual((pairs[0] as Record<string, string>)["sas:fieldName"], "a_field");
+  strictEqual((pairs[1] as Record<string, string>)["sas:fieldName"], "z_field");
+  // JCS key order within each object: sas:falseValue, sas:fieldName, sas:trueValue
+  const canonical = stableStringify(cfg, false);
+  const parsed = JSON.parse(canonical);
+  const firstPairKeys = Object.keys(parsed["sas:booleanPairs"][0]);
+  strictEqual(firstPairKeys[0], "sas:falseValue");
+  strictEqual(firstPairKeys[1], "sas:fieldName");
+  strictEqual(firstPairKeys[2], "sas:trueValue");
+  console.log("  \u2713 PASS: T-17 booleanPairs ordering \u2192 sorted by fieldName, JCS key order");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: T-17 booleanPairs ordering");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 27 (T-18): cism-validation-failed rule assignment
+// ---------------------------------------------------------------------------
+try {
+  const cism = makeCISM([
+    { name: "bad", node: prim("integer", 100, { integer: 60, string: 50 }) },
+  ]);
+  const result = align(cism, HASH);
+  const field = result.schema!["viz:hasField"][0];
+  strictEqual(field["viz:hasDataType"]["@id"], "viz:UnknownType");
+  strictEqual(field["sas:alignmentRule"], "cism-validation-failed");
+  strictEqual(field["viz:consensusScore"], "0.000000");
+  strictEqual(field["sas:consensusNumerator"], 0);
+  strictEqual(field["sas:consensusDenominator"], 0);
+  ok(result.diagnostics.some((d) => d.code === "SAS-013"), "expected SAS-013");
+  console.log("  \u2713 PASS: T-18 cism-validation-failed \u2192 UnknownType, 0/0, SAS-013");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: T-18 cism-validation-failed");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 28 (T-21): fandawsConsulted always present (standalone)
+// ---------------------------------------------------------------------------
+try {
+  const fields = multiResult.schema!["viz:hasField"];
+  for (const f of fields) {
+    const val = f["sas:fandawsConsulted"];
+    ok(val !== undefined, `${f["viz:fieldName"]} must have sas:fandawsConsulted`);
+    strictEqual(val, false, `${f["viz:fieldName"]} fandawsConsulted must be false in standalone`);
+  }
+  console.log("  \u2713 PASS: T-21 fandawsConsulted always present \u2192 false on all " + fields.length + " fields");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: T-21 fandawsConsulted always present");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 29 (P-10): activeConfig completeness invariant
+// For every ok result, activeConfig is present with @type and all 5 properties
+// ---------------------------------------------------------------------------
+try {
+  const okResults: SASResult[] = [
+    multiResult,
+    align(makeCISM([{ name: "x", node: prim("integer", 100, { integer: 100 }) }]), HASH),
+    align(makeCISM([{ name: "y", node: prim("string", 50, { string: 50 }) }]), HASH, {
+      consensusThreshold: 0.5,
+      booleanFields: { y: ["a", "b"] },
+    }),
+  ];
+  for (const r of okResults) {
+    strictEqual(r.status, "ok");
+    const cfg = r.schema!["sas:activeConfig"] as unknown as Record<string, unknown>;
+    ok(cfg !== undefined, "activeConfig must be present");
+    strictEqual(cfg["@type"], "sas:AlignmentConfiguration");
+    ok(cfg["sas:consensusThreshold"] !== undefined, "consensusThreshold present");
+    ok(cfg["sas:minObservationThreshold"] !== undefined, "minObservationThreshold present");
+    ok(cfg["sas:nullVocabulary"] !== undefined, "nullVocabulary present");
+    ok(cfg["sas:booleanPairs"] !== undefined, "booleanPairs present");
+    ok(cfg["sas:temporalNamePattern"] !== undefined, "temporalNamePattern present");
+  }
+  console.log("  \u2713 PASS: P-10 activeConfig completeness \u2192 all 5 properties on " + okResults.length + " results");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: P-10 activeConfig completeness");
+  console.error(" ", e instanceof Error ? e.message : String(e));
+  failed++;
+}
+
+// ---------------------------------------------------------------------------
+// Test 30 (P-11): fandawsConsulted universality invariant
+// Every DataField in every ok result has sas:fandawsConsulted as boolean
+// ---------------------------------------------------------------------------
+try {
+  const okResults: SASResult[] = [
+    multiResult,
+    align(makeCISM([
+      { name: "a", node: prim("integer", 100, { integer: 100 }) },
+      { name: "b", node: prim("string", 100, { string: 100 }) },
+    ]), HASH),
+  ];
+  let fieldCount = 0;
+  for (const r of okResults) {
+    const fields = r.schema!["viz:hasField"];
+    for (const f of fields) {
+      const val = f["sas:fandawsConsulted"];
+      ok(val !== undefined, `${f["viz:fieldName"]} has sas:fandawsConsulted`);
+      strictEqual(typeof val, "boolean", `${f["viz:fieldName"]} fandawsConsulted is boolean`);
+      fieldCount++;
+    }
+  }
+  console.log("  \u2713 PASS: P-11 fandawsConsulted universality \u2192 boolean on all " + fieldCount + " fields");
+  passed++;
+} catch (e) {
+  console.error("  \u2717 FAIL: P-11 fandawsConsulted universality");
   console.error(" ", e instanceof Error ? e.message : String(e));
   failed++;
 }
