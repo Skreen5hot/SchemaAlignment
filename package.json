@@ -33,7 +33,7 @@
     "typescript": "^5.7.0",
     "@types/node": "^22.0.0",
     "rimraf": "^6.0.0",
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.28.0"
   },
   "engines": {
     "node": ">=22.0.0"
